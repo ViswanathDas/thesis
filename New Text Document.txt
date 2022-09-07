@@ -1,0 +1,16 @@
+ReadMe.txt file explaining the additions and deletions to each file. 
+
+1. road_lane_pot_str.m : This file has the code to show the road potential ( including the additions for shifted quadratic road potential).  
+2. APF_Obstacle_Road1.m - This .m file contains the code to design the equations for the obstacle potential. 
+
+   Take the changes in APF_Obstacle_Road.m and change derv1 and derv2 functions to suit the derevatives of
+   -(-A ln(bK))/(bK).
+
+   i. Removed the calculation of surface plot and the contour plot of the obstacle from Xvartempin and Yvartempin
+      and replaced it with only the calculation using the inequalities used to determine the regions and therefore
+      calculating the surf and contour plots. Problem is that it is done only for one obstacle and has not been extended
+      to work with multiple obstacles.
+
+3. APF_Obstacle_Road2.m: Improved APF_Obstacle_Road1.m for each region so as to work well with multiple obstacle vehicle
+   works well. keep in mind that the x_h_0 values used in these region parts of the code is to be changed based
+   on the number of equations as they might be so that they lie within an obstacle.

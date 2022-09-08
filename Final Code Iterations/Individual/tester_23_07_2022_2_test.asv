@@ -70,7 +70,7 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [5 250 4.5 0 0 0;30 400 1.5 0 0 0]';
+x_o_0= [5 250 4.5 0 0 0;10 400 1.5 0 0 0]';
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -315,9 +315,9 @@ while x_h(2,1)<=road_len
                                    b_u_ineq(2,1) <= u{1,i}(1,1) <= b_u_ineq(1,1),...
                                    b_u_ineq(4,1) <= u{1,i}(2,1) <= b_u_ineq(3,1)];
         if i==1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1))/m)<=0.5];
+            constraints= [constraints, -0.05<=((u{1,i}(1,1)-u_h(1,1))/m)<=0.2];
         elseif i>1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1))/m)<=0.5];
+            constraints= [constraints, -0.05<=((u{1,i}(1,1)-u{1,i-1}(1,1))/m)<=0.2];
         end
 %         if i==1
 %             constraints= [constraints, -0.05<=(u{1,i}(2,1)-u_h(2,1))<=0.05];
@@ -327,7 +327,7 @@ while x_h(2,1)<=road_len
     end
     
     %% Optimization
-    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ObjScale', -1);
+    ops= sdpsettings('solver','gurobi','verbose', 2);
     optimize([constraints, x_init== x_h],objective, ops);
 %     optimize(constraints,objective);
     u_h= value(u{1});
@@ -378,7 +378,7 @@ while x_h(2,1)<=road_len
     if count==536
         display('test')
     end
-
+    R=0;
     if (R==0)
     figure(count)
     subplot(6,1,1)

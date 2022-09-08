@@ -30,7 +30,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [40 0 4.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [41.6 0 4.5 0 0 0]'; % state of the host vehicle. 
 
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -70,7 +70,7 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [5 250 4.5 0 0 0;30 400 1.5 0 0 0]';
+x_o_0= [30 250 4.5 0 0 0;0.01 300 1.5 0 0 0]';
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -113,11 +113,11 @@ lambda_y_APFMPC= [  20 0 0 0 0;
                     0 0 0 0 1;];
 
 % for u= [F_x delta]^T
-lambda_u_APFMPC= [  1e-7       0;
+lambda_u_APFMPC= [  0.1       0;
                     0        1;];
                 
-lambda_delta_u_APFMPC= [    1e-8   0;
-                            0   10000;];
+lambda_delta_u_APFMPC= [    0.01   0;
+                            0   10;];
 
 lambda_delta_x_APFMPC= [    0 0 0 0 0 0;
                             0 0 0 0 0 0;
@@ -314,11 +314,11 @@ while x_h(2,1)<=road_len
                                    f_ineq(10,1) <= x{1,i+1}(6,1) <= f_ineq(9,1),...
                                    b_u_ineq(2,1) <= u{1,i}(1,1) <= b_u_ineq(1,1),...
                                    b_u_ineq(4,1) <= u{1,i}(2,1) <= b_u_ineq(3,1)];
-        if i==1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1))/m)<=0.5];
-        elseif i>1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1))/m)<=0.5];
-        end
+%         if i==1
+%             constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1)))<=0.5];
+%         elseif i>1
+%             constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1)))<=0.5];
+%         end
 %         if i==1
 %             constraints= [constraints, -0.05<=(u{1,i}(2,1)-u_h(2,1))<=0.05];
 %         elseif i>1
@@ -327,7 +327,7 @@ while x_h(2,1)<=road_len
     end
     
     %% Optimization
-    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ObjScale', -1);
+    ops= sdpsettings('solver','gurobi','verbose', 2);
     optimize([constraints, x_init== x_h],objective, ops);
 %     optimize(constraints,objective);
     u_h= value(u{1});
@@ -347,7 +347,7 @@ while x_h(2,1)<=road_len
         end
     end
 
-    a_HV_list(count,1)= u_h(1,1)/m; 
+    a_HV_list(count,1)= u_h(1,1); 
     del_HV_list(count,1)= u_h(2,1); 
     v_x_HV_list(count,1)= x_h(1,1);
     x_HV_list(count,1)= x_h(2,1);
@@ -507,77 +507,129 @@ function ss_d= car_modelMIMPC(T, x_o, flag_LC, flag_ND)
 end
 
 % Prediction car model used in the MPC Problem. Use of a dynamics vehicle
-% model with varying longitudinal velocity. Linearized model.
+% model with varying longitudinal velocity. Linearized model. See notes
 function ss_d= car_modelAPFMPC(const, T, x_0, u)
+%% Input the define the linearized model matrices.
     C_f= const(1);        % Negative front tire cornering stiffness
     C_r= const(2);       % Negative rear tire cornering stiffness
-    L_wb= const(3);          % Wheel base
-    l_r= const(4);         % Distance between rear axle and vehicle CoG
-    l_f= const(5);         % Distance between front axle and vehicle CoG
-    I_z= const(6);       % Vehicle yaw moment of inertia
-    m= const(7);            % Vehicle Mass
+    l_r= const(3);         % Distance between rear axle and vehicle CoG
+    l_f= const(4);         % Distance between front axle and vehicle CoG
+    I_z= const(5);       % Vehicle yaw moment of inertia
+    m= const(6);            % Vehicle Mass
     
     v_x = x_0(1,1);
     x = x_0(2,1);
     y = x_0(3,1);
     v_y = x_0(4,1);
     psi_dot = x_0(5,1);
-    psit = x_0(6,1);
+    psi = x_0(6,1);
     
     Fx= u(1,1);
     delta= u(2,1);
 %%
-    A1= -v_x * sind(psit) - v_y * cosd(psit);
-    A2= v_x * cosd(psit) + v_y * sind(psit);
-    A3= ((C_f + C_r)* v_y)/(m* v_x^2)+ ((l_f * C_f - l_r * C_r) * psi_dot)/(m* v_x^2)- psi_dot;
-    A4= (l_r * C_r - l_f * C_f)/(m* v_x);
-    A5= ((l_f * C_f - l_r * C_r) * v_y)/(I_z* v_x^2) + ((l_f^2 * C_f + l_r^2 * C_r) * psi_dot)/(I_z* v_x^2);
-    A6= (l_r * C_r - l_f * C_f)/(I_z* v_x);
-    A7= (-l_f^2 * C_f - l_r^2 * C_r)/(I_z* v_x);
-    A8= tand(delta)/(l_f + l_r);
-    A9= -(C_f + C_r)/(m* v_x);
+    alpha1= v_y+ l_f*psi_dot;
+    alpha2= v_y- l_r*psi_dot;
+    alpha3= (v_y+ l_f*psi_dot)/ v_x;
+    alpha4= (v_y- l_r*psi_dot)/ v_x;
+    alpha5= atand((v_y+ l_f*psi_dot)/ v_x);
+    alpha6= alpha3^2+1;
+    alpha7= alpha4^2+1;
+    
+    A11= -(2*C_f*sind(delta)*alpha1)/(m*alpha6*v_x^2);
+    A12= 0; 
+    A13= 0;
+    A14= (2*C_f*sind(delta))/(m*alpha6*v_x)+psi_dot;
+    A15= (2*C_f*l_f*sind(delta))/(m*alpha6*v_x)+v_y;
+    A16= 0;
+    
+    A21= cosd(psi);
+    A22= 0;
+    A23= 0;
+    A24= -sind(psi);
+    A25= 0;
+    A26= -v_x*sind(psi)-v_y*cosd(psi);
+    
+    A31= sind(psi);
+    A32= 0;
+    A33= 0;
+    A34= cosd(psi);
+    A35= 0;
+    A36= v_x*cosd(psi)-v_y*sind(psi);
+    
+    A41= (2*C_r*alpha2)/(m*alpha7*v_x^2)+ (2*C_f*cosd(delta)*alpha1)/(m*alpha6*v_x^2)-psi_dot;
+    A42= 0;
+    A43= 0;
+    A44= -(2*C_r)/(m*alpha7*v_x)-(2*C_f*cosd(delta))/(m*alpha6*v_x);
+    A45= -(2*C_r*l_r)/(m*alpha7*v_x)-(2*C_f*l_f*cosd(delta))/(m*alpha6*v_x)-v_x;
+    A46= 0;
+    
+    A51= (2*C_f*l_f*cosd(delta)*alpha1)/(I_z*alpha6*v_x^2)-(2*C_r*l_r*alpha2)/(I_z*alpha7*v_x^2);
+    A52= 0;
+    A53= 0;
+    A54= (2*C_r*l_r)/(I_z*v_x*alpha7)-(2*C_f*l_f*cosd(delta))/(I_z*v_x*alpha6);
+    A55= -(2*C_r*l_r^2)/(I_z*v_x*alpha7)-(2*C_f*l_f^2*cosd(delta))/(I_z*v_x*alpha6);
+    A56= 0;
+    
+    A61= (tand(delta))/(l_f+l_r);
+    A62= 0;
+    A63= 0;
+    A64= 0;
+    A65= 0;
+    A66= 0;
     
     
-    B0= 1/m;
-    B1= C_f/m;
-    B2= (l_f*C_f)/I_z;
-    B3= (v_x * (secd(delta))^2)/ (l_f + l_r);
-    % Matrices of the continuous-time car model using ZOH
-    A= [       0          0       0         psi_dot          v_y         0;
-            cosd(psit)    0       0       -sind(psit)         0          A1;
-            sind(psit)    0       0        cosd(psit)         0          A2;
-               A3         0       0           A9              A4         0;
-               A5         0       0           A6              A7         0;
-               A8         0       0            0               1         0;];
+    B11= 1;
+    B12= -(2*C_f*(sind(delta)+(delta- atand(alpha3))*cosd(delta)))/m;
+    
+    B21= 0;
+    B22= 0;
+    
+    B31= 0;
+    B32= 0;
+    
+    B41= 0;
+    B42= -(2*C_f*((delta-atand(alpha3))*sind(delta)-cosd(delta)))/m;
+    
+    B51= 0;
+    B52= -(2*C_f*l_f*((delta-atand(alpha3))*sind(delta)-cosd(delta)))/I_z;
+    
+    B61= 0;
+    B62= (v_x*(secd(delta)^2))/(l_f+l_r);
 
-    B= [    B0      0;
-            0       0;
-            0       0;
-            0       B1;
-            0       B2;
-            0       B3;];
+    % Matrices of the continuous-time car model using ZOH
+    A= [A11 A12 A13 A14 A15 A16;
+        A21 A22 A23 A24 A25 A26;
+        A31 A32 A33 A34 A35 A36;
+        A41 A42 A43 A44 A45 A46;
+        A51 A52 A53 A54 A55 A56;
+        A61 A62 A63 A64 A65 A66;];
+
+    B= [B11 B12;
+        B21 B22;
+        B31 B32;
+        B41 B42;
+        B51 B52;
+        B61 B62;];
 %% 
-    C= [    1       0       0       0       0    0;
-            0       0       1       0       0    0;
-            0       0       0       1       0    0;
-            0       0       0       0       1    0;
-            0       0       0       0       0    1;];    
-%     C= [    0       0       1       0       0       0;
-%             0       0       0       1       0       0;
-%             0       0       0       0       1       0;
-%             0       0       0       0       0       1;];
-%     C= [    0       0       1       0       0       0;];
-        
-%     C= [  0       0       0       1       0       0;
-%             0       0       0       0       1       0;
-%             0       0       0       0       0       1;];
+    C= [    1       0       0       0       0       0;
+            0       0       1       0       0       0;
+            0       0       0       1       0       0;
+            0       0       0       0       1       0;
+            0       0       0       0       0       1;];
+
     if v_x==0
         A= [        0	0	0	0   0   0;
                     0   1   0   0   0   0;
                     0   0   0   0   0   0;
-                   	0   0   0   0   0   0;
-                  	0   0   0   0   0   0;
-                   	0   0   0   0   0   0;];
+                    0   0   0   0   0   0;
+                    0   0   0   0   0   0;
+                    0   0   0   0   0   0;];
+        B= [    0       0;
+                0       0;
+                0       0;
+                0       0;
+                0       0;
+                0       0;];
     end
         ss_c= ss(A, B, C, 0);
 
@@ -700,7 +752,7 @@ v_x_min= V_min * cosd(beta_max);
 v_y_min= -v_y_max;
 
 f_ineq= [v_x_max v_x_min Y_max Y_min v_y_max v_y_min r_max r_min psi_max psi_min l_max l_min]';
-b_u_ineq = [F_x_max F_x_min delta_max delta_min]';
+b_u_ineq = [a_x_max a_x_min delta_max delta_min]';
 end
 
 % Extended reference trajectory used. Ideally the car should be in the

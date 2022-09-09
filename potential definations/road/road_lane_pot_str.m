@@ -39,9 +39,12 @@ end
 % shading interp;
 
 %% Road Potential
-eta= 1000;
-a= 2;
-b=100000;
+% eta= 1000;
+% a= 2;
+% b=100000;
+eta= 1;
+a= 1;
+b=100;
 for i= 1:length(loc_road_bound)
     for j= 1:length(Y_var)
         for k= 1:length(X_var)

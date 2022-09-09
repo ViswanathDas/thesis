@@ -30,7 +30,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [40 0 4.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [41.6 0 4.5 0 0 0]'; % state of the host vehicle. 
 
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -61,16 +61,16 @@ for i=1:1:n_lanes
 end
 
 % Road Potenial Data
-eta= 1000;
+eta= 1;
 A_skew = 2; 
-b_skew = 1e5;
+b_skew = 1e3;
 
 const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [5 250 4.5 0 0 0;30 400 1.5 0 0 0]';
+x_o_0= [10 220 4.5 0 0 0;20 350 1.5 0 0 0]';
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -106,26 +106,26 @@ N_p= 10;
 % Weights for the Objective Function
 
 % y= [v_x y v_y psi_dot psi]^T
-lambda_y_APFMPC= [  20 0 0 0 0;
+lambda_y_APFMPC= [  50 0 0 0 0;
                     0 0 0 0 0;
                     0 0 1 0 0;
                     0 0 0 1 0; 
                     0 0 0 0 1;];
 
 % for u= [F_x delta]^T
-lambda_u_APFMPC= [  1e-7       0;
+lambda_u_APFMPC= [  0       0;
                     0        1;];
                 
-lambda_delta_u_APFMPC= [    1e-8   0;
+lambda_delta_u_APFMPC= [    100   0;
                             0   10000;];
 
-lambda_delta_x_APFMPC= [    0 0 0 0 0 0;
+lambda_delta_x_APFMPC= [    10 0 0 0 0 0;
                             0 0 0 0 0 0;
                             0 0 0 0 0 0;
-                            0 0 0 0 0 0;
+                            0 0 0 10 0 0;
                             0 0 0 0 0 0;
                             0 0 0 0 0 0;];
-lambda_o_APFMPC= 10;
+lambda_o_APFMPC= 0.1;
 lambda_r_APFMPC= 1;
 
 %% Optimal Control Problem
@@ -216,7 +216,7 @@ while x_h(2,1)<=road_len
     %% Host Vehicle Model
     
     % Model of the host vehicle for APF-MPC
-    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h);
+    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h_0);
     
     %% Obstacle Model
 
@@ -256,12 +256,12 @@ while x_h(2,1)<=road_len
     x = sdpvar(repmat(height(x_h_0),1,N_p+1),repmat(1,1,N_p+1));  
     % Variable for the intial velocity of the host vehicle
     x_init= sdpvar(height(x_h_0),1); % 
-    % Variable for the initial lane of the host vehicle
-    u_init= sdpvar(height(u_h_0),1); % 
+%     % Variable for the initial lane of the host vehicle
+%     u_init= sdpvar(height(u_h_0),1); % 
     % Assigning the initial variables defined to the respective variables
     % on the extended variable set.
     x{1,1}= x_init;
-    u{1,1}= u_init;
+%     u{1,1}= u_init;
     % Define the initial constraints and objective. 
     constraints= [];
     objective= 0;
@@ -315,9 +315,9 @@ while x_h(2,1)<=road_len
                                    b_u_ineq(2,1) <= u{1,i}(1,1) <= b_u_ineq(1,1),...
                                    b_u_ineq(4,1) <= u{1,i}(2,1) <= b_u_ineq(3,1)];
         if i==1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1))/m)<=0.5];
+            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1)))<=0.2];
         elseif i>1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1))/m)<=0.5];
+            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1)))<=0.2];
         end
 %         if i==1
 %             constraints= [constraints, -0.05<=(u{1,i}(2,1)-u_h(2,1))<=0.05];
@@ -327,7 +327,7 @@ while x_h(2,1)<=road_len
     end
     
     %% Optimization
-    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ObjScale', -1);
+    ops= sdpsettings('solver','gurobi','verbose', 2);
     optimize([constraints, x_init== x_h],objective, ops);
 %     optimize(constraints,objective);
     u_h= value(u{1});
@@ -347,7 +347,7 @@ while x_h(2,1)<=road_len
         end
     end
 
-    a_HV_list(count,1)= u_h(1,1)/m; 
+    a_HV_list(count,1)= u_h(1,1); 
     del_HV_list(count,1)= u_h(2,1); 
     v_x_HV_list(count,1)= x_h(1,1);
     x_HV_list(count,1)= x_h(2,1);
@@ -375,7 +375,7 @@ while x_h(2,1)<=road_len
     %% Plot 1    
     name= ['Fig' num2str(count)];
     R= rem(count,10);
-    if count==536
+    if count==116
         display('test')
     end
 
@@ -538,7 +538,7 @@ function ss_d= car_modelAPFMPC(const, T, x_0, u)
     A9= -(C_f + C_r)/(m* v_x);
     
     
-    B0= 1/m;
+    B0= 1;
     B1= C_f/m;
     B2= (l_f*C_f)/I_z;
     B3= (v_x * (secd(delta))^2)/ (l_f + l_r);
@@ -700,7 +700,7 @@ v_x_min= V_min * cosd(beta_max);
 v_y_min= -v_y_max;
 
 f_ineq= [v_x_max v_x_min Y_max Y_min v_y_max v_y_min r_max r_min psi_max psi_min l_max l_min]';
-b_u_ineq = [F_x_max F_x_min delta_max delta_min]';
+b_u_ineq = [a_x_max a_x_min delta_max delta_min]';
 end
 
 % Extended reference trajectory used. Ideally the car should be in the
@@ -956,220 +956,9 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
  
 end
 
-% Function to Generate the extended matrices of the state space system
-function [tilde_A tilde_B tilde_C tilde_A_u tilde_A_minus tilde_B_minus]= mpc_model(N_p, ss_d)
-
-    %% Derivation of A_tilde
-
-    for i= 1:N_p
-        tilde_A{i,1}=  (ss_d.A)^i;
-    end
-    tilde_A= vertcat(tilde_A{:});
-
-    %% Derivation of B_tilde
-
-    for i= 1:N_p
-        tilde_B_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_temp1= vertcat(tilde_B_temp1{:});
-    [row_tilde_B_temp1,col_tilde_B_temp1]= size(tilde_B_temp1);
-    tilde_B= zeros(row_tilde_B_temp1, col_tilde_B_temp1*N_p);
-    for i=1:N_p
-        alpha= col_tilde_B_temp1*i-(col_tilde_B_temp1-1):col_tilde_B_temp1*i;
-        tilde_B(height(ss_d.B)*(i-1)+1:row_tilde_B_temp1,alpha)= tilde_B_temp1(1:...
-            (end-height(ss_d.B)*(i-1)),:);
-    end
-
-    %% Derivation of C_tilde
-    tilde_C_temp = repmat({ss_d.C}, 1, N_p);  
-    tilde_C = blkdiag(tilde_C_temp{:});
-
-   %% Derivation of tilde_A_minus
-   
-    [row_A, col_A]= size(ss_d.A);
-    for i= 1:N_p
-        tilde_A_minus{i,1}=  (ss_d.A-eye(row_A))*(ss_d.A)^(i-1);
-    end
-    tilde_A_minus= vertcat(tilde_A_minus{:});
-
-    %% Derivation of tilde_B_minus
-    for i= 1:N_p
-        tilde_B_minus_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_minus_temp2{1,1}= tilde_B_minus_temp1{1,1};
-    for i= 1:N_p-1
-        tilde_B_minus_temp2{i+1,1}=  tilde_B_minus_temp1{i+1,1}-tilde_B_minus_temp1{i,1};
-    end
-    tilde_B_minus_temp2= vertcat(tilde_B_minus_temp2{:});
-    [row_tilde_B_minus_temp2,col_tilde_B_minus_temp2]= size(tilde_B_minus_temp2);
-    tilde_B_minus= zeros(row_tilde_B_minus_temp2, col_tilde_B_minus_temp2*N_p);
-    for i=1:N_p
-        alpha= col_tilde_B_temp1*i-(col_tilde_B_temp1-1):col_tilde_B_temp1*i;
-        tilde_B_minus(height(ss_d.B)*(i-1)+1:row_tilde_B_minus_temp2,alpha)= tilde_B_minus_temp2(1:...
-                    (end-height(ss_d.B)*(i-1)),:);
-    end    
-
-    %% Derivation of A_u_tilde
-    
-%     tilde_A_u= zeros(width(ss_d.B)*N_p,width(ss_d.B)*N_p);
-%     tilde_A_u(1:width(ss_d.B),1:width(ss_d.B))=eye(width(ss_d.B));
-%     te1= zeros(1,width(ss_d.B)*N_p);
-%     te2= zeros(width(ss_d.B)*(N_p-1),width(ss_d.B)*N_p);
-%     temp= [-1 zeros(1,width(ss_d.B)-1) -1];
-%     te1(1,1:width(temp))= temp;
-%     for i=1:width(ss_d.B)*(N_p-1)
-%         te2(i,i:end)= te1(1:(N_p+i-1)*width(ss_d.B)- (width(temp)*(i-1)));
-%     end
-%     tilde_A_u(width(ss_d.B)+1:end,:)= te2;
-    temp= eye(width(ss_d.B));
-    temp1= zeros(width(ss_d.B));
-    for i= 1:1:N_p
-        for j= 1:1:N_p
-    tilde_A_u{i,j}= zeros(width(ss_d.B));
-        end
-    end
-   tilde_A_u{1,1}= temp; 
-    for i= 2:1:N_p
-    tilde_A_u{i,i-1}= temp;
-    tilde_A_u{i,i}= -temp;
-    end
-   tilde_A_u= cell2mat(tilde_A_u);
-
-end
-
-% Function to Generate the extended matrices of the state space system
-function [tilde_A tilde_B tilde_C tilde_A_u tilde_A_minus tilde_B_minus]= mpc_model1(N_p, ss_d, x_h, u, const, T)
-%     u= [1000 0]';
-    % Basics
-    A_temp{1,1}= ss_d.A;
-    B_temp{1,1}= ss_d.B;
-    C_temp{1,1}= ss_d.C;
-    D_temp{1,1}= ss_d.D;
-    x_temp{1,1}= x_h;
-    for i= 2:1:N_p
-        x_temp{i,1}= A_temp{i-1,1}*x_temp{i-1,1}+B_temp{i-1,1}*u;
-        ss_d_temp= car_model2(const, T, x_temp{i,1}, u);
-        A_temp{i,1}= ss_d_temp.A;
-        B_temp{i,1}= ss_d_temp.B;
-        C_temp{i,1}= ss_d_temp.C;
-        D_temp{i,1}= ss_d_temp.D;
-    end
-    
-%%
-% Derivation of A_tilde
-
-    for i= N_p:-1:1
-        tilde_A{N_p-i+1,1}= matprodtilde(i,0,A_temp, N_p);
-    end
-    tilde_A= vertcat(tilde_A{:});    
-%%
-%     Derivation of B_tilde
-    for i= 1:1:N_p
-        B_temp1= B_temp{i,1};
-        [r_b, c_b]= size(B_temp1);
-        B_zero= zeros(r_b,c_b);
-        if i>1
-           for k= 2:1:i
-               tilde_B{k-1,i}= B_zero;
-           end
-           tilde_B{i,i}= B_temp1;
-        elseif i==1
-            k=1;
-            tilde_B{i,i}= B_temp1;
-        end
-        for l=k+1:1:N_p
-            tilde_B{l,i}= matprodtilde(N_p-l+1,i,A_temp,N_p)*B_temp1;
-        end
-    end
-    tilde_B= cell2mat(tilde_B);
-%%
-    % Derivation of C_tilde
-    tilde_C= blkdiag(C_temp{:,1});
-%%
-%   % Derivation of tilde_A_minus
-    [row_A, col_A]= size(ss_d.A);
-    for i= 1:N_p
-        tilde_A_minus{i,1}=  eye(row_A)*(ss_d.A)^(i-1);
-    end
-    tilde_A_minus= vertcat(tilde_A_minus{:});
-%%
-% %    % Derivation of tilde_B_minus
-    for i= 1:N_p
-        tilde_B_minus_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_minus_temp2{1,1}= tilde_B_minus_temp1{1,1};
-    for i= 1:N_p-1
-        tilde_B_minus_temp2{i+1,1}=  tilde_B_minus_temp1{i+1,1}-tilde_B_minus_temp1{i,1};
-    end
-    tilde_B_minus_temp2= vertcat(tilde_B_minus_temp2{:});
-    [row_tilde_B_minus_temp2,col_tilde_B_minus_temp2]= size(tilde_B_minus_temp2);
-    tilde_B_minus= zeros(row_tilde_B_minus_temp2, col_tilde_B_minus_temp2*N_p);
-    for i=1:N_p
-        if col_tilde_B_minus_temp2==1
-            alpha= i;
-        elseif col_tilde_B_minus_temp2==2
-            alpha= (2*i-1):2*i;
-        end
-        tilde_B_minus(6*(i-1)+1:row_tilde_B_minus_temp2,alpha)= tilde_B_minus_temp2(1:...
-            (end-6*(i-1)),:);
-    end
-    
-%     te1= zeros(1,N_p);
-%     te2= zeros(N_p-1,N_p);
-%     te1(1,1:2)= [-1 1];
-%     for i=1:N_p-1
-%         te2(i,i:end)= te1(1:N_p-i+1);
-%     end
-%     tilde_A_u= zeros(N_p,N_p);
-%     tilde_A_u(2:end,:)= te2;
-%     tilde_A_u(1,1)=1;
-%%
-    % Derivation of A_u_tilde
-    
-    row_tilde_B_temp1= height(ss_d.B)*N_p;
-    col_tilde_B_temp1= width(ss_d.B);
-    tilde_A_u= zeros(width(ss_d.B)*N_p,width(ss_d.B)*N_p);
-    tilde_A_u(1:width(ss_d.B),1:width(ss_d.B))=eye(width(ss_d.B));
-    te1= zeros(1,width(ss_d.B)*N_p);
-    te2= zeros(width(ss_d.B)*(N_p-1),width(ss_d.B)*N_p);
-    if width(ss_d.B)==1
-        temp= [-1 1];
-    elseif width(ss_d.B)==2
-        temp= [-1 0 1];
-    end   
-    te1(1,1:width(temp))= temp;
-    for i=1:width(ss_d.B)*(N_p-1)
-        te2(i,i:end)= te1(1:(N_p+i-1)*width(ss_d.B)- (width(temp)*(i-1)));
-    end
-    tilde_A_u(width(ss_d.B)+1:end,:)= te2;
-
-end
-
-% Function for extended matrices of the weights of the cost function
-function [tilde_lambda_y tilde_lambda_u tilde_lambda_delta tilde_lambda_delta_x tilde_lambda_r tilde_lambda_o]...
-    = mpc_weights(N_p, lambda_y, lambda_u, lambda_delta, lambda_r, lambda_o, lambda_delta_x)
-tilde_lambda_y= repmat({lambda_y}, 1, N_p);  
-tilde_lambda_y = blkdiag(tilde_lambda_y{:});
-
-tilde_lambda_u= repmat({lambda_u}, 1, N_p);  
-tilde_lambda_u = blkdiag(tilde_lambda_u{:});
-
-tilde_lambda_delta= repmat({lambda_delta}, 1, N_p);  
-tilde_lambda_delta = blkdiag(tilde_lambda_delta{:});
-
-tilde_lambda_r= repmat({lambda_r}, 1, N_p);  
-tilde_lambda_r = blkdiag(tilde_lambda_r{:});
-
-tilde_lambda_o= repmat({lambda_o}, 1, N_p);  
-tilde_lambda_o = blkdiag(tilde_lambda_o{:});
-
-tilde_lambda_delta_x= repmat({lambda_delta_x}, 1, N_p);  
-tilde_lambda_delta_x= blkdiag(tilde_lambda_delta_x{:});
-end
-
 % Function which generates the matrices to be used in the quadratic cost
 % function which represent the taylor series approximation of the APF.
-function [A1 A2 A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh, l_ref)
+function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh, l_ref)
     A= const_o(1,1);
     b= const_o(1,2);
     eta= const_r(1,1);
@@ -1187,12 +976,6 @@ function [A1 A2 A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, dist
     y= x_h(3,1);
     
     opt_l= l_ref; 
-    
-%     if opt_l==0
-%         opt_y=1.5;
-%     elseif opt_l==1
-%         opt_y=4.5;
-%     end
     % Given the vertices of the obstacle, we can find then distance from a
     % point to all the vertices and all the boundaries, and find the minimum of
     % these values. 
@@ -1405,129 +1188,6 @@ function [A1 A2 A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, dist
  
             A3= [a4 a5;
                 a6 a7];
-    end
-end
-
-% Function for extended matrices of the taylor approximation of the
-% Artificial Potential field
-function [tilde_C_xy tilde_Ur_0 tilde_Ur_1 tilde_Ur_2 tilde_Uob_0...
-    tilde_Uob_1 tilde_Uob_2]= mpc_apf(N_p, C_xy, Ur_0 ,Ur_1 ,Ur_2, Uob_0...
-    ,Uob_1 ,Uob_2)
-
-% tilde_Uob_0= Uob_0*N_p;
-% 
-% tilde_Uob_1= repmat({Uob_1}, 1, N_p);
-% tilde_Uob_1= horzcat(tilde_Uob_1{:});
-% 
-% tilde_Uob_2= repmat({Uob_2}, 1, N_p);
-% tilde_Uob_2 = blkdiag(tilde_Uob_2{:});
-
-temp_tilde_Uob_0= horzcat(Uob_0{:});
-tilde_Uob_0= sum(temp_tilde_Uob_0);
-
-tilde_Uob_1= horzcat(Uob_1{:});
-
-tilde_Uob_2 = blkdiag(Uob_2{:});
-
-tilde_Ur_0= Ur_0*N_p;
-
-tilde_Ur_1= repmat({Ur_1}, 1, N_p);
-tilde_Ur_1= horzcat(tilde_Ur_1{:});
-
-tilde_Ur_2= repmat({Ur_2}, 1, N_p);
-tilde_Ur_2 = blkdiag(tilde_Ur_2{:});
-
-tilde_C_xy= repmat({C_xy}, 1, N_p);
-tilde_C_xy= blkdiag(tilde_C_xy{:});
-end
-
-% Function to get the quadratic cost function
-function u_h = cost_func(tilde_A, tilde_B, tilde_C,tilde_A_minus, tilde_B_minus, tilde_C_xy,...
-    tilde_Ur_1, tilde_Ur_2, tilde_Uob_1, tilde_Uob_2, tilde_A_u,...
-    tilde_lambda_y, tilde_lambda_u, tilde_lambda_delta,tilde_lambda_delta_x, tilde_lambda_r,...
-    tilde_lambda_o, N_p, x_h, tilde_y_ref, tilde_u_ref, tilde_A_ineq,...
-    tilde_b_ineq, lambda_r, lambda_o, ss_d)
-
-H1 = 2 * (tilde_C * tilde_B)' * tilde_lambda_y * (tilde_C * tilde_B);
-H2 = 2 * tilde_lambda_u * eye(width(ss_d.B)*N_p);
-H3 = 2 * tilde_A_u' * tilde_lambda_delta * tilde_A_u;
-H4 = lambda_r * (tilde_C_xy * tilde_B)' * tilde_Ur_2 * (tilde_C_xy * tilde_B);
-H5 = lambda_o * (tilde_C_xy * tilde_B)' * tilde_Uob_2 * (tilde_C_xy * tilde_B);
-H6 = 2 * (tilde_B_minus)' * tilde_lambda_delta_x * (tilde_B_minus);
-
-c1 = 2 * ((tilde_C * tilde_A * x_h) - tilde_y_ref)' * tilde_lambda_y * (tilde_C * tilde_B);
-c2 = -2 * tilde_u_ref' * tilde_lambda_u;
-c3 = lambda_r * (( tilde_Ur_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Ur_2) * (tilde_C_xy * tilde_B));
-c4 = lambda_o * (( tilde_Uob_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Uob_2) * (tilde_C_xy * tilde_B));
-c5 = -2 * (tilde_A_minus*x_h)' * tilde_lambda_delta_x * tilde_B_minus;
-% H = H1 + H2 + H3 + H4 + H5;
-% c = c1 + c2 + c3 + c4;
-H = H1 + H2 + H3 + H4 + H5 + H6;
-c = c1 + c2 + c3 + c4 + c5;
-[L,p] = chol(H,'lower'); % Checking for positive definiteness of the H matrix.
-
-% AS there are no equality constraints (can add these if there are any
-% later. These were written as the solver document asks us to define them.
-A_eq= zeros(0,width(ss_d.B)*N_p);
-b_eq= zeros(0,1);
-u_h_0= zeros(width(ss_d.B)*N_p,1);
-
-iA0 = false(size(tilde_b_ineq)); % same size as the number of inequalities
-% opt = mpcActiveSetOptions;
-opt = mpcInteriorPointOptions;
-
-% [u_h, exitflag]= mpcActiveSetSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,iA0,opt);
-[u_h, exitflag]= mpcInteriorPointSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,u_h_0,opt);
-end
-
-% Function to get the quadratic cost function
-function [H, c] = cost_func1(tilde_A, tilde_B, tilde_C,tilde_A_minus, tilde_B_minus, tilde_C_xy,...
-    tilde_Ur_1, tilde_Ur_2, tilde_Uob_1, tilde_Uob_2, tilde_A_u,...
-    tilde_lambda_y, tilde_lambda_u, tilde_lambda_delta,tilde_lambda_delta_x, tilde_lambda_r,...
-    tilde_lambda_o, N_p, x_h, tilde_y_ref, tilde_u_ref, tilde_A_ineq,...
-    tilde_b_ineq, lambda_r, lambda_o, ss_d)
-
-H1 = (tilde_C * tilde_B)' * tilde_lambda_y * (tilde_C * tilde_B);
-H2 = tilde_lambda_u * eye(width(ss_d.B)*N_p);
-H3 = tilde_A_u' * tilde_lambda_delta * tilde_A_u;
-H4 = 0.5* lambda_r * (tilde_C_xy * tilde_B)' * tilde_Ur_2 * (tilde_C_xy * tilde_B);
-H5 = 0.5* lambda_o * (tilde_C_xy * tilde_B)' * tilde_Uob_2 * (tilde_C_xy * tilde_B);
-H6 = (tilde_B_minus)' * tilde_lambda_delta_x * (tilde_B_minus);
-
-c1 = 2 * ((tilde_C * tilde_A * x_h) - tilde_y_ref)' * tilde_lambda_y * (tilde_C * tilde_B);
-c2 = -2 * tilde_u_ref' * tilde_lambda_u;
-c3 = lambda_r * (( tilde_Ur_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Ur_2) * (tilde_C_xy * tilde_B));
-c4 = lambda_o * (( tilde_Uob_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Uob_2) * (tilde_C_xy * tilde_B));
-c5 = -2 * (tilde_A_minus*x_h)' * tilde_lambda_delta_x * tilde_B_minus;
-% H = H1 + H2 + H3 + H4 + H5;
-% c = c1 + c2 + c3 + c4;
-H = H1 + H2 + H3 + H4 + H5 + H6;
-c = c1 + c2 + c3 + c4 + c5;
-% [L,p] = chol(H,'lower'); % Checking for positive definiteness of the H matrix.
-% 
-% % AS there are no equality constraints (can add these if there are any
-% % later. These were written as the solver document asks us to define them.
-% A_eq= zeros(0,width(ss_d.B)*N_p);
-% b_eq= zeros(0,1);
-% u_h_0= zeros(width(ss_d.B)*N_p,1);
-% 
-% iA0 = false(size(tilde_b_ineq)); % same size as the number of inequalities
-% % opt = mpcActiveSetOptions;
-% opt = mpcInteriorPointOptions;
-% 
-% % [u_h, exitflag]= mpcActiveSetSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,iA0,opt);
-% [u_h, exitflag]= mpcInteriorPointSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,u_h_0,opt);
-end
-
-% Function to get the product of the A matrices based on the inputs 
-function alpha= matprodtilde(i,j,A_temp, N_p)
-%     ans1= A_temp{1,1};
-%     ans2= vertcat(A_temp{:});
-%     [r1,c1]= size(ans1);
-%     [r2,c2]= size(ans2);
-    alpha= A_temp{j+1,1};
-    for n= j+2:1:N_p-i+1
-        alpha= alpha* A_temp{n,1};
     end
 end
 
@@ -2340,7 +2000,7 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
         case 11
             display('Point Inside the Car');
             K= 2e-10;
-            u=-const(1,1)*log(const(1,2)*K)/(const(1,2)*K);
+            u=-(const(1,1)*log(const(1,2)*K))/(const(1,2)*K);
             ux=0;
             uy=0;
             uxx=0;

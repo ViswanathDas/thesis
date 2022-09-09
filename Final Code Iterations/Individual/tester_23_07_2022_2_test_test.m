@@ -42,7 +42,7 @@ u_h_0= [0 0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1000;  % length of the road in meters
+road_len= 1500;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -70,7 +70,8 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [10 220 4.5 0 0 0;20 350 1.5 0 0 0]';
+% x_o_0= [1 300 4.5 0 0 0;1 300 1.5 0 0 0]'; %DLC
+% x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (change road length to 1500)
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -195,22 +196,17 @@ while x_h(2,1)<=road_len
                     end 
                 end
             end
-            for i= 1:1:width(x_o)
-                if abs(lane_obst(i,1)-lane_host)==1
-%                     if abs(x_o(2,i)-x_h(2,1))<=d_safe_max % As maximum value of v_x is
-%                         % 41.667 m/s, we have a maximum safe distance (with
-%                         % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
-%                         % distance of 300m
-                    if abs(x_h(2,1)- x_o(2,i))<=d_safe_max % As maximum value of v_x is
-                        % 41.667 m/s, we have a maximum safe distance (with
-                        % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
-                        % distance of 230 meters. Also we double this
-                        % distance so that we do no change lane in case
-                        % there is a slower vehicle in the adjacent lane
-                        flag_LC= 0;
+            if flag_ND==1
+                distance= [];
+            elseif flag_ND==0
+                for i= 1:1:width(x_o)
+                    distance(i,1)= (x_h(1,1)^2/(2*a_x_max)) - (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1 + d0;
+                    if distance(i,1)<16
+                        distance(i,1)=16;
                     end
                 end
             end
+            flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance);
         end
         
     %% Host Vehicle Model
@@ -222,17 +218,7 @@ while x_h(2,1)<=road_len
 
     ss_d_obs_APFMPC= car_model_obs(T, 'APF-MPC');
     
-    %% Constraints Boundaries 
-    if flag_ND==1
-        distance= [];
-    elseif flag_ND==0
-        for i= 1:1:width(x_o)
-            distance(i,1)= (x_h(1,1)^2/(2*a_x_max)) - (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1 + d0;
-            if distance(i,1)<16
-                distance(i,1)=16;
-            end
-        end
-    end
+    %% Constraints Boundaries
 
     % Function used to generate the limits which define the boundary
     % constraints the host vehicle.
@@ -375,7 +361,7 @@ while x_h(2,1)<=road_len
     %% Plot 1    
     name= ['Fig' num2str(count)];
     R= rem(count,10);
-    if count==116
+    if count==255
         display('test')
     end
 
@@ -954,6 +940,214 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
     y_traj_APFMPC(5,1)= psi_ref;
     
  
+end
+
+function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance)
+%%
+    dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
+    time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
+    % Check if an obstacle is on the same lane or the adjacent lanes 
+    % as the host vehicle and to save the index of such obstacle
+    count0= 0;
+    count1= 0;
+    count11=0;
+    flag_alpha1= zeros(width(x_o),1);
+    flag_alpha2= zeros(width(x_o),1);
+    for i= 1:1:width(x_o)
+        if abs(lane_obst(i,1)-lane_host)==0% To check the total number of vehicles as the 
+            % same lane as the HV
+            flag_alpha1(i,1)=1; % set this flag if the corresponding OV is in 
+            % the same lane as the HV
+            count0= count0+1; % number of OV in the same lane and the HV
+            index0(count0,1)= i; % Index of the obstacles on the same lane as
+            % the host vehicle
+        elseif abs(lane_obst(i,1)-lane_host)==1% To check the which OV's
+            % are on adjacent lane of the HV
+            count1= count1+1; % number of vehicles in the adjacent lane of the HV
+            flag_alpha2(i,1)= 1;% set this flag if the corresponding OV if
+            % if it on the adjacent lane of the HV
+            index1(count1,1)=i;% Index of the obstacles which are on 
+            % the adjacent lane of the HV
+        else % To check which vehicles are farther away from the HV by more
+            % than one lane.
+            count11= count11+1;% total number of vehicles which are farther 
+            % away from the HV by more than one lane.
+            index2(count1,1)=i;% index of vehicles which are farther 
+            % away from the HV by more than one lane.
+        end
+    end
+
+    % Check which obstacles in the same lane as the HV are infront of and 
+    % behind the HV
+    count21= 0;
+    count22= 0;
+    if count0>=1
+        for i= 1:1:count0
+            if x_o(2,index0(i,1))>=x_h(2,1)
+                count21= count21+1;% number of obstacles in front of the HV
+                flag_beta1(i,1)= 1;% flag is 1 if the vehicle is infront of the HV
+                index21(count21,1)= index0(i,1); % Index of the vehicles on the same
+                % lane as the host vehicle and in front of the host vehicle
+            elseif x_o(2,index0(i,1))<x_h(2,1)
+                count22= count22+1;% number of obstacles behind the HV
+                flag_beta2(i,1)= 1;% flag is 1 if the vehicle is behind the HV
+                index22(count22,1)= index0(i,1); % Index of the vehicles on the same
+                % lane as the host vehicle and behind of the host vehicle
+            end
+        end
+    end
+
+    % Check which obstacles in the adjacent lane as the HV are infront of and 
+    % behind the HV
+    count31= 0;
+    count32= 0;
+    if count1>=1
+        for i= 1:1:count1
+            if x_o(2,index1(i,1))>x_h(2,1)
+                count31= count31+1;% number of OV in the adjacent lane in front of the HV
+                flag_gamma1(i,1)= 1;% flag is 1 if the OV in the adjacent lane is 
+                % infront of the HV
+                index31(count31,1)= index1(i,1); % Index of the vehicles on the adjacent
+                % lane as the host vehicle and in front of the host vehicle
+            elseif x_o(2,index1(i,1))<=x_h(2,1)
+                count32= count32+1;% number of OV in the adjacent lane behind of the HV
+                flag_gamma2(i,1)= 1;% flag is 1 if the OV in the adjacent lane is 
+                % behind of the HV
+                index32(count32,1)= index1(i,1); % Index of the vehicles on the adjacent
+                % lane as the host vehicle and behind of the host vehicle
+            end
+        end
+    end
+
+    % Here to find the OV which is in front of the vehicle in the same
+    % lane and to find the OV in front of and behind the vehicle in the adjacent
+    % lane. Found by first making a matrix of the all the vehicle data of the
+    % obstacles in front of the HV and then finding the minimum value of x of
+    % them and then setting them to a value. 
+    if count0>=1
+        if count21>=1
+            flag_delta= 1; % This shows that there is a vehicle 
+            % in front of the HV in the same lane
+            for i=1:1:count21
+                % Here we have to find the index of the obstacle which has the
+                % least x value or in other words find the obstacle right infrnt of
+                % the HV in the same lane. 
+                x_o_scrut1{1,i}=x_o(:,index21(i,1)); 
+            end
+            x_o_scrut1= horzcat(x_o_scrut1{:});
+            [min_x, index41]= min(x_o_scrut1(2,:));
+            x_o_front_SL= x_o_scrut1(:,index41);
+            index41= index21(index41,1);
+        else
+            flag_delta= 0; % This shows that there is no vehicle  
+            % in front of the HV in the same lane
+        end
+    else
+        flag_delta= 0; % This shows that there is no vehicle  
+        % in front of the HV in the same lane
+    end
+
+    % similarly for obstacles in the adjacent lane to find the OV right infront
+    % of the HV
+    if count1>=1
+        if count31>=1
+            flag_epsilon1= 1; % This shows that there is a vehicle 
+            % in front of the HV in the adjacent lane
+            for i=1:1:count31
+                % Here we have to find the index of the obstacle which has the
+                % least x value or in other words find the obstacle right infrnt of
+                % the HV in the adjacent lane. 
+                x_o_scrut2{1,i}=x_o(:,index31(i,1)); 
+            end
+            x_o_scrut2= horzcat(x_o_scrut2{:});
+            [min_x, index42]= min(x_o_scrut2(2,:));
+            x_o_front_AL= x_o_scrut2(:,index42);
+            index42= index31(index42,1);
+        else
+            flag_epsilon1= 0; % This shows that there is no vehicle  
+            % in front of the HV in the adjacent lane
+        end
+    else
+        flag_epsilon1= 0; % This shows that there is no vehicle  
+        % in front of the HV in the adjacent lane
+    end
+
+    % similarly for obstacles in the adjacent lane to find the OV right behind the HV
+    if count1>=1
+        if count32>=1
+            flag_epsilon2= 1; % This shows that there is a vehicle 
+            % behind the HV in the adjacent lane
+            for i=1:1:count32
+                % Here we have to find the index of the obstacle which has the
+                % least x value or in other words find the obstacle right infrnt of
+                % the HV inthe same lane. 
+                x_o_scrut3{1,i}=x_o(:,index32(i,1)); 
+            end
+            x_o_scrut3= horzcat(x_o_scrut3{:});
+            [min_x, index43]= max(x_o_scrut3(2,:));
+            x_o_rear_AL= x_o_scrut3(:,index43);
+            index43= index32(index43,1);
+        else
+            flag_epsilon2= 0; % This shows that there is no vehicle  
+            % behind the HV in the adjacent lane
+        end
+    else
+        flag_epsilon2= 0; % This shows that there is no vehicle  
+            % behind the HV in the adjacent lane
+    end
+    
+
+    for i= 1:1:width(x_o)
+        if flag_delta==0
+            flag_LC=0;
+        elseif flag_delta==1
+            if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
+                % infront of or behind the HV in the adjacent lane.
+                flag_LC=1;
+            elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
+                % infront of the HV in the adjacent lane but not behind the
+                % vehicle.
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max*2-...
+                    (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
+                    % Here I have to add another check which checks if the
+                    % vehicle can slow down without crossing the boundary, If
+                    % not then flag_LC==1 rather than flag_LC==0 
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0 &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
+                        flag_LC=1;
+                    else
+                        flag_LC=0;
+                    end
+                else
+                    flag_LC=1;
+                end
+            elseif flag_epsilon1==0 && flag_epsilon2==1
+                if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                    (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+
+                    flag_LC=1;
+                else
+                    flag_LC=0;
+                end
+            elseif flag_epsilon1==1 && flag_epsilon2==1
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max*2-...
+                   (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
+                   x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                   (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0  &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
+                        flag_LC=1;
+                    else
+                        flag_LC=0;
+                    end
+                else
+                    flag_LC=1; 
+                end
+            end
+        end 
+    end
 end
 
 % Function which generates the matrices to be used in the quadratic cost

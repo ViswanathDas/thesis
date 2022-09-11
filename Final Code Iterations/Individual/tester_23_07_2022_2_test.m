@@ -70,7 +70,8 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-% x_o_0= [1 300 4.5 0 0 0;1 300 1.5 0 0 0]'; %DLC
+x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]'; %DLC
+% x_o_0= [1 300 4.5 0 0 0;1 300 1.5 0 0 0]'; %wait behind
 % x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (change road length to 1500)
 % x_o_0= [];
 % Obstacle Potential Field Data
@@ -323,6 +324,9 @@ while x_h(2,1)<=road_len
     display(u_h')
     % Saving the values of the states and the input
     count= count + 1;
+    if count>20
+        x_o(1,:)=[20 1];
+    end
     if flag_ND==0
         x_o= ss_d_obs_APFMPC.A* x_o;
         for i= 1:width(x_o)

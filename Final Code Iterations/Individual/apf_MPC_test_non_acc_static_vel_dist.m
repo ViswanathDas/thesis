@@ -42,7 +42,7 @@ u_h_0= [0 0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1500;  % length of the road in meters
+road_len= 1000;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -70,11 +70,11 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]';
+% x_o_0= [1 250 4.5 0 0 0;20 200 1.5 0 0 0]';
 % x_o_0= [41.6 100 4.5 0 0 0]'; %vel drop 1
 % x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]'; %DLC
 % x_o_0= [10 230 4.5 0 0 0;10 200 1.5 0 0 0]'; %wait behind
-% x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (change road
+x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (change road
 % length to 1500) (problem something infeasible model for third LC)
 % x_o_0= [];
 % Obstacle Potential Field Data
@@ -205,8 +205,8 @@ while x_h(2,1)<=road_len
             elseif flag_ND==0
                 for i= 1:1:width(x_o)
                     distance(i,1)= (x_h(1,1)^2/(2*a_x_max)) - (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1 + d0;
-                    if distance(i,1)<16
-                        distance(i,1)=16;
+                    if distance(i,1)<5
+                        distance(i,1)=5;
                     end
                 end
             end
@@ -328,9 +328,9 @@ while x_h(2,1)<=road_len
     % Saving the values of the states and the input
 
     count= count + 1;
-    if count>20
-        x_o(1,:)=[20 1];
-    end
+%     if count>20
+%         x_o(1,:)=[20 1];
+%     end
     if flag_ND==0
         x_o= ss_d_obs_APFMPC.A* x_o;
         for i= 1:width(x_o)
@@ -368,8 +368,12 @@ while x_h(2,1)<=road_len
     
     %% Plot 1    
     name= ['Fig' num2str(count)];
+%     if count>140
+%     R= rem(count,1);
+%     else
     R= rem(count,10);
-    if count==255
+%     end
+    if count==143
         display('test')
     end
 
@@ -909,7 +913,7 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
                 % in the safety region. Then stay in the current lane.
                 l_ref= lane_host;
                 vx_ref= x_h_0(1,1);
-                if x_o_front_SL(2,1)- x_h(2,1)<=distance(index41)+230
+                if x_o_front_SL(2,1)- x_h(2,1)<=230+ (x_h(1,1)-x_o_front_SL(1,1))*size_veh(1,1)
                     vx_ref= x_o_front_SL(1,1);
                 end
             elseif flag_LC==1 % Implies that there is no vehicle in the adjacent
@@ -1056,7 +1060,7 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
     end
 
     % similarly for obstacles in the adjacent lane to find the OV right infront
-    % of the HV
+    % of the HV 
     if count1>=1
         if count31>=1
             flag_epsilon1= 1; % This shows that there is a vehicle 

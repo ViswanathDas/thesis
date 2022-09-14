@@ -42,7 +42,7 @@ u_h_0= [0 0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1500;  % length of the road in meters
+road_len= 2000;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -70,12 +70,11 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]';
+% x_o_0= [35 100 4.5 0 0 0;10 150 1.5 0 0 0;]';
 % x_o_0= [41.6 100 4.5 0 0 0]'; %vel drop 1
 % x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]'; %DLC
-% x_o_0= [10 230 4.5 0 0 0;10 200 1.5 0 0 0]'; %wait behind
-% x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (change road
-% length to 1500) (problem something infeasible model for third LC)
+% x_o_0= [1 230 4.5 0 0 0;1 230 1.5 0 0 0]'; %wait behind
+x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC (road len 1500)
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -200,30 +199,42 @@ while x_h(2,1)<=road_len
                     end 
                 end
             end
-            if flag_ND==1
-                distance= [];
-            elseif flag_ND==0
-                for i= 1:1:width(x_o)
-                    distance(i,1)= (x_h(1,1)^2/(2*a_x_max)) - (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1 + d0;
-                    if distance(i,1)<16
-                        distance(i,1)=16;
+            for i= 1:1:width(x_o)
+                if abs(lane_obst(i,1)-lane_host)==1
+%                     if abs(x_o(2,i)-x_h(2,1))<=d_safe_max % As maximum value of v_x is
+%                         % 41.667 m/s, we have a maximum safe distance (with
+%                         % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
+%                         % distance of 300m
+                    if abs(x_h(2,1)- x_o(2,i))<=d_safe_max % As maximum value of v_x is
+                        % 41.667 m/s, we have a maximum safe distance (with
+                        % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
+                        % distance of 300m
+                        flag_LC= 0;
                     end
                 end
             end
-            flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance);
         end
         
     %% Host Vehicle Model
     
     % Model of the host vehicle for APF-MPC
-    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h_0);
+    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h);
     
     %% Obstacle Model
 
     ss_d_obs_APFMPC= car_model_obs(T, 'APF-MPC');
     
-    %% Constraints Boundaries
-
+    %% Constraints Boundaries 
+    if flag_ND==1
+        distance= [];
+    elseif flag_ND==0
+        for i= 1:1:width(x_o)
+            distance(i,1)= (x_h(1,1)^2/(2*a_x_max)) - (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1 + d0;
+            if distance(i,1)<16
+                distance(i,1)=16;
+            end
+        end
+    end
     % Function used to generate the limits which define the boundary
     % constraints the host vehicle.
 
@@ -304,11 +315,11 @@ while x_h(2,1)<=road_len
                                    f_ineq(10,1) <= x{1,i+1}(6,1) <= f_ineq(9,1),...
                                    b_u_ineq(2,1) <= u{1,i}(1,1) <= b_u_ineq(1,1),...
                                    b_u_ineq(4,1) <= u{1,i}(2,1) <= b_u_ineq(3,1)];
-        if i==1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1)))<=0.2];
-        elseif i>1
-            constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1)))<=0.2];
-        end
+%         if i==1
+%             constraints= [constraints, -0.2<=((u{1,i}(1,1)-u_h(1,1)))<=0.2];
+%         elseif i>1
+%             constraints= [constraints, -0.2<=((u{1,i}(1,1)-u{1,i-1}(1,1)))<=0.2];
+%         end
 %         if i==1
 %             constraints= [constraints, -0.05<=(u{1,i}(2,1)-u_h(2,1))<=0.05];
 %         elseif i>1
@@ -317,7 +328,7 @@ while x_h(2,1)<=road_len
     end
     
     %% Optimization
-    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ScaleFlag', 0m );
+    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ScaleFlag', 0, 'gurobi.BarHomogeneous', 1);
     optimize([constraints, x_init== x_h],objective, ops);
 %     optimize(constraints,objective);
     u_h= value(u{1});
@@ -328,9 +339,15 @@ while x_h(2,1)<=road_len
     % Saving the values of the states and the input
 
     count= count + 1;
-    if count>20
-        x_o(1,:)=[20 1];
-    end
+%     if count>140
+%         x_o(1,:)=[20 1];
+%     end
+%     if count>250
+%         x_o(1,:)=[1 20];
+%     end
+%     if count>250
+%         x_o(3,:)=[1.5 4.5];
+%     end
     if flag_ND==0
         x_o= ss_d_obs_APFMPC.A* x_o;
         for i= 1:width(x_o)
@@ -368,10 +385,14 @@ while x_h(2,1)<=road_len
     
     %% Plot 1    
     name= ['Fig' num2str(count)];
+%     if count>140
+%     R= rem(count,1);
+%     else
     R= rem(count,10);
-    if count==255
-        display('test')
-    end
+%     end
+%     if count==380
+%         display('test')
+%     end
 
     if (R==0)
     figure(count)
@@ -909,7 +930,7 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
                 % in the safety region. Then stay in the current lane.
                 l_ref= lane_host;
                 vx_ref= x_h_0(1,1);
-                if x_o_front_SL(2,1)- x_h(2,1)<=distance(index41)+230
+                if x_o_front_SL(2,1)- x_h(2,1)<=230+ (x_h(1,1)-x_o_front_SL(1,1))*size_veh(1,1)
                     vx_ref= x_o_front_SL(1,1);
                 end
             elseif flag_LC==1 % Implies that there is no vehicle in the adjacent
@@ -950,7 +971,7 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
  
 end
 
-function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance)
+function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0)
 %%
     dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
     time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
@@ -1056,7 +1077,7 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
     end
 
     % similarly for obstacles in the adjacent lane to find the OV right infront
-    % of the HV
+    % of the HV 
     if count1>=1
         if count31>=1
             flag_epsilon1= 1; % This shows that there is a vehicle 
@@ -1105,61 +1126,61 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
     end
     
 
-    for i= 1:1:width(x_o)
-        if flag_delta==0
-            flag_LC=0;
-        elseif flag_delta==1
-            if x_o_front_SL(1,1)-x_h(1,1)<= 0
-                if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
-                    % infront of or behind the HV in the adjacent lane.
-                    flag_LC=1;
-                elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
-                    % infront of the HV in the adjacent lane but not behind the
-                    % vehicle.
-                    if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max*2-...
-                        (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
-                        % Here I have to add another check which checks if the
-                        % vehicle can slow down without crossing the boundary, If
-                        % not then flag_LC==1 rather than flag_LC==0 
-                        if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0 &&...
-                                (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
-                                x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
-                            flag_LC=1;
-                        else
-                            flag_LC=0;
-                        end
-                    else
-                        flag_LC=1;
-                    end
-                elseif flag_epsilon1==0 && flag_epsilon2==1
-                    if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
-                        (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
 
+    if flag_delta==0
+        flag_LC=0;
+    elseif flag_delta==1
+        if x_o_front_SL(1,1)-x_h_0(1,1)<= 0
+            if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
+                % infront of or behind the HV in the adjacent lane.
+                flag_LC=1;
+            elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
+                % infront of the HV in the adjacent lane but not behind the
+                % vehicle.
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max+5*size_veh(1,1)-...
+                    (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
+                    % Here I have to add another check which checks if the
+                    % vehicle can slow down without crossing the boundary, If
+                    % not then flag_LC==1 rather than flag_LC==0 
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0 &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
                         flag_LC=1;
                     else
                         flag_LC=0;
                     end
-                elseif flag_epsilon1==1 && flag_epsilon2==1
-                    if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max*2-...
-                       (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
-                       x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
-                       (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
-                        if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0  &&...
-                                (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
-                                x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
-                            flag_LC=1;
-                        else
-                            flag_LC=0;
-                        end
-                    else
-                        flag_LC=1; 
-                    end
+                else
+                    flag_LC=1;
                 end
-            else
-                flag_LC=0;
+            elseif flag_epsilon1==0 && flag_epsilon2==1
+                if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                    (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+
+                    flag_LC=1;
+                else
+                    flag_LC=0;
+                end
+            elseif flag_epsilon1==1 && flag_epsilon2==1
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max*2-...
+                   (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
+                   x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                   (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0  &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
+                        flag_LC=1;
+                    else
+                        flag_LC=0;
+                    end
+                else
+                    flag_LC=1; 
+                end
             end
-        end 
-    end
+        else
+            flag_LC=0;
+        end
+    end 
+
 end
 
 % Function which generates the matrices to be used in the quadratic cost

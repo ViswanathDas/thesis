@@ -325,7 +325,7 @@ while x_h(2,1)<=road_len
     end
     
     %% Optimization
-    ops= sdpsettings('solver','gurobi','verbose', 2);
+    ops= sdpsettings('solver','gurobi','verbose', 2, 'gurobi.ScaleFlag', 0, 'gurobi.BarHomogeneous', 1);
     optimize([constraints, x_init== x_h],objective, ops);
 %     optimize(constraints,objective);
     u_h= value(u{1});

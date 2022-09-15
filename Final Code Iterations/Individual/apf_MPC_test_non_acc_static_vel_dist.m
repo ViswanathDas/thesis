@@ -71,9 +71,9 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 
 % States of the Obstacle
 % x_o_0= [41.6 100 4.5 0 0 0]'; %vel drop 1
-x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]'; %DLC
+% x_o_0= [1 250 4.5 0 0 0;20 300 1.5 0 0 0]'; %DLC
 % x_o_0= [1 230 4.5 0 0 0;1 230 1.5 0 0 0]'; %wait behind
-% x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC 
+x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC 
 % x_o_0= [];
 % Obstacle Potential Field Data
 A= 1;
@@ -208,7 +208,7 @@ while x_h(2,1)<=road_len
                     end
                 end
             end
-            flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_veh, a_x_max, distance, x_h_0);
+            flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh);
         end
         
     %% Host Vehicle Model
@@ -326,9 +326,9 @@ while x_h(2,1)<=road_len
     % Saving the values of the states and the input
 
     count= count + 1;
-    if count>140
-        x_o(1,:)=[20 1];
-    end
+%     if count>140
+%         x_o(1,:)=[20 1];
+%     end
 %     if count>250
 %         x_o(1,:)=[1 20];
 %     end
@@ -958,7 +958,7 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
  
 end
 
-function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_veh, a_x_max, distance, x_h_0)
+function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh)
 %%
     dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
     time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);

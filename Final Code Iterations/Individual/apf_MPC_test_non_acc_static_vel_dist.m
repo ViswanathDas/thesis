@@ -580,6 +580,12 @@ function ss_d= car_modelAPFMPC(const, T, x_0, u)
                    	0   0   0   0   0   0;
                   	0   0   0   0   0   0;
                    	0   0   0   0   0   0;];
+        B= [    0      0;
+                0       0;
+                0       0;
+                0       0;
+                0       0;
+                0       0;];
     end
         ss_c= ss(A, B, C, 0);
 

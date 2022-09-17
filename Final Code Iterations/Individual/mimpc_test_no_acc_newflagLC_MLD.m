@@ -41,11 +41,12 @@ u_h_0= 0;
 %% Obstacle Data
 
 % Obstacle data is of the form [ velocity lane ]'
-x_o_0= [20 1; 1 0]';
+x_o_0= [20 1; 20 0]';
+% x_o_0= [10 1]';
 
 % Distance of each obstacle from the host vehicle.
-d_0= [230 500]; % should be a row
-
+d_0= [250 250]; % should be a row
+% d_0= [250];
 size_veh= [2.5 1.5]; % Size of the both the host and the obstacle vehicles
 
 %% Road Data
@@ -94,13 +95,13 @@ N_p= 10;
 
 % Weights for the objective function
 
-lambda_x_MIMPC= [1 0;0 1e5];
+lambda_x_MIMPC= [1 0;0 1];
 
 lambda_u_MIMPC= 0;
 
 lambda_delta_x_MIMPC= [0 0; 0 0];
 
-lambda_delta_u_MIMPC_0= 1;
+lambda_delta_u_MIMPC_0= 5;
 
 %% Data for the Optimal Control Problem
 
@@ -187,34 +188,70 @@ while long_pos_host<=road_len
         lat_pos_host= 1.5;
     end
     pos_host= [long_pos_host lat_pos_host]';
+    lane_host= x_h(2,1);
+    
+    %% Constraints Boundaries 
 
+    % Constraints are to be added on the the lateral position, lateral velocity
+    % yaw rate, heading angle and steering angle
+
+    [a_x_max, f_ineq, b_u_ineq]= mpc_constraints2(x_h, const_r, size_veh);
+    
     %% Set the flags for no data, no data within the region of interest (roi) and lane change.
-        lane_host= x_h(2,1);
-        if isempty(x_o_copy)==1
-            flag_ND=1;
-            flag_ND_roi=1;
-            flag_LC=0;
+
+        if isempty(x_o_copy)==1 % flag_ND=1
+            flag_ND=1; % No data given
+            flag_ND_roi=1; % No data within the ROI
+            flag_LC=0; % Do not change lane
             x_o=[];
             d_o=[];
             vj_o=[];
             n=0;
             long_pos_obs= [];
             lat_pos_obs= [];
-            pos_obs= [];
+            lane_obst= [];
             distance1= [];
+            distance= [];
         elseif isempty(x_o_copy)==0
-            
+            flag_ND=0; % Data given
+            flag_ND_roi=1; % No data within the ROI
+            flag_LC=0; % Do not change lane
+            x_o=[];
+            d_o=[];
+            vj_o=[];
+            n=0;
+            lane_obst= [];
             distance1= [];
+            distance= [];
+            
+            
+            %Here we check if there are any vehicles which are outside the maximum
+            % range of perception (500 m) set
+            countester=0;
+            index= [];
+
+            
+            for i= 1:1:width(x_o_copy)
+    %                 distance(i,1)= (x_0_APFMPC(1,1)^2/(2*a_x_max))- (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1+d0;
+                distance(i,1)= (x_h(1,1)^2/(2*a_x_max))- (x_o_copy(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1+size_veh(1,1);
+                if distance(i,1)<16
+                    distance(i,1)=16;
+                end
+            end
             % Find the longitudinal position of the obstacle vehicles based
             % on the velocity in this step and the longitudinal position of
             % the previous step
             for i= 1:1:width(x_o_copy)
                 long_pos_obs(i,1)= long_pos_obs(i,1) + x_o_copy(1,i)*T;
             end
-            flag_ND=0;
-            %Here we check if there are any vehicles which are outside the maximum
-            % range of perception (500 m) set
-            countester=0;
+            for i= 1:1:width(x_o_copy)
+                if x_o_copy(2,i)==1
+                    lat_pos_obs(i,1)= 4.5;
+                elseif x_o_copy(2,i)==0
+                    lat_pos_obs(i,1)= 1.5;
+                end
+            end
+            
             for i=1:1:width(x_o_copy)
     %            if abs(x_o_copy(2,i)-x_h(2,1))<=d_roi
                if abs(d_copy(1,i))<=d_roi
@@ -224,9 +261,7 @@ while long_pos_host<=road_len
             end
             % Keeping the OV data from the original OV data matrix if euclidian distance 
             % between the HV and the OV is less than the ROI distance
-            x_o= [];
-            d_o= [];
-            vj_o= [];
+
             for i=1:1:countester
                 x_o(:,i)=x_o_copy(:,index(i,1)); 
                 d_o(:,i)= d_copy(1,index(i,1));
@@ -240,14 +275,20 @@ while long_pos_host<=road_len
             % so. Therefore we first have to check which vehicles are in the
             % adjacent lane
             if isempty(x_o)==1
-                flag_ND_roi=1;
-                flag_LC=0;
+                flag_ND=0; % Data given
+                flag_ND_roi=1; % No data within the ROI
+                flag_LC=0; % Do not change lane
                 n=0;
+                lane_obst= [];
                 distance1= [];
             elseif isempty(x_o)==0
-                flag_ND_roi=0;
-                flag_LC= 1;
+                flag_ND=0; % Data given
+                flag_ND_roi=0; % No data within the ROI
+                flag_LC=1; % Do not change lane
                 n=0;
+                lane_obst= [];
+                distance1= [];
+                
                 % Check which lane number that the obstacles are in 
     %             for i= 1:1:n_lanes
     %                 for j= 1:1:width(x_o)
@@ -271,6 +312,20 @@ while long_pos_host<=road_len
                 end
                 
                 flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_veh, a_x_max, distance1, x_h_0, d_o);
+%                 for i= 1:1:width(x_o)
+%                     if abs(lane_obst(i,1)-lane_host)==1
+%     %                     if abs(x_o(2,i)-x_h(2,1))<=d_safe_max % As maximum value of v_x is
+%     %                         % 41.667 m/s, we have a maximum safe distance (with
+%     %                         % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
+%     %                         % distance of 300m
+%                         if abs(x_h(2,1)- x_o(2,i))<=d_safe_max % As maximum value of v_x is
+%                             % 41.667 m/s, we have a maximum safe distance (with
+%                             % v_x_obst= 0) as 223.95 m, we assume a maximum safe area
+%                             % distance of 300m
+%                             flag_LC= 0;
+%                         end
+%                     end
+%                 end
                 
                 if flag_LC== 1% This implies that the lane change is possible
                  n_MLD_var= 6;
@@ -298,29 +353,9 @@ while long_pos_host<=road_len
     %% Obstacle Model
     ss_d_obs_MIMPC= car_model_obs(T, 'MIMPC');
 %     ss_d_obs_APFMPC= car_model_obs(T, 'APF-MPC')
-        
-    %% Constraints Boundaries 
-    % This is used to get the 
-    if flag_ND==1
-        distance= [];
-    elseif flag_ND==0
-        for i= 1:1:width(x_o_copy)
-%                 distance(i,1)= (x_0_APFMPC(1,1)^2/(2*a_x_max))- (x_o(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1+d0;
-            distance(i,1)= (x_h(1,1)^2/(2*a_x_max))- (x_o_copy(1,i)^2/(2*a_x_max)) +x_h(1,1)*t1+size_veh(1,1);
-            if distance(i,1)<16
-                distance(i,1)=16;
-            end
-        end
-    end
-    % Constraints are to be added on the the lateral position, lateral velocity
-    % yaw rate, heading angle and steering angle
-
-    [a_x_max, f_ineq, b_u_ineq]= mpc_constraints2(x_h, const_r, size_veh);
     
     %% Extended Reference Trajectory
     
-%     [y_traj_MIMPC, u_traj_MIMPC, y_traj_APFMPC, u_traj_APFMPC] = ref_traj_st(x_h, const_r, x_o, flag_LC, flag_ND,...
-%         flag_ND_roi, d_roi);
     [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index_SL] = ref_traj_st(x_h, const_r, x_o, flag_LC, flag_ND,...
         flag_ND_roi, d_o, distance1, size_veh, x_h_0);
     
@@ -381,8 +416,8 @@ while long_pos_host<=road_len
         
         % Input variables giving the maximum and minimum of the the
         % variables
-        M_dj= (d_roi+5);
-        m_dj= -(d_roi+5);
+        M_dj= (d_roi+33);
+        m_dj= -(d_roi+33);
         M_l=1;
         m_l=0;
         M_v= 40;
@@ -390,7 +425,7 @@ while long_pos_host<=road_len
         % Boundary Variables
         ep= 1e-200;
         ep2= 3e-6;
-        ep3= 1e-10;
+        ep3= 1e-200;
         constraints= [constraints, v{1,i+1}== ss_d_MIMPC.A*v{1,i}+ ss_d_MIMPC.B*u{1,i}]; % System Dynamics Model
         constraints= [constraints, f_ineq(2,1) <= v{1,i+1}(1,1) <= f_ineq(1,1),...% Boundary Constraints of the Velocity
             binary(l{1,i+1}(1,1)),... % As we assume that it is a two lane variable.
@@ -419,16 +454,19 @@ while long_pos_host<=road_len
 %                 % Evolution of the obstacle vehicle data
 %                 x_o1= ss_d_obs_MIMPC.A* x_o1;
                 % Evolution of the distance variable over the horizon
-                    
-                if flag_LC==0  
+                for j=1:1:width(x_o1)
+                    constraints= [constraints, d{1,i+1}(j,1)== d{1,i}(j,1)+ T*(x_o1(1,j)-v{1,i}(1,1))];
+                end
+                if flag_LC==0
                     
                     constraints= [constraints, l{1,i+1}(1,1)-l{1,i}(1,1)==0];
+                    
                     for j=1:1:width(x_o1)
                         % Lane of the jth obstacle vehicle (that lies
                         % within the ROI)
                         l_j= x_o1(2,j);
                         % MLD Constraints
-                        constraints= [constraints, d{1,i+1}(j,1)== d{1,i}(j,1)+ T*(x_o1(1,j)-v{1,i}(1,1))];
+                        
                         
                         constraints= [constraints, (M_l-(l_j+ep2))*u{1,i}(1+(j-1)*n_MLD_var+1,1)<= M_l-l{1,i}(1,1),...
                             ((l_j+ep2)+ep-m_l)*u{1,i}(1+(j-1)*n_MLD_var+1,1)>= ep+(l_j+ep2)-l{1,i}(1,1),...
@@ -461,17 +499,18 @@ while long_pos_host<=road_len
 %                         constraints= [constraints, 2*u{1,i}(1+(j-1)*n_MLD_var+7,1)-u{1,i}(1+(j-1)*n_MLD_var+6,1)-distance1(j,1)*u{1,i}(1+(j-1)*n_MLD_var+3,1)>=0];
     
                         constraints= [constraints, m_dj*u{1,i}(1+(j-1)*n_MLD_var+5,1)<=u{1,i}(1+(j-1)*n_MLD_var+6,1)<=M_dj*u{1,i}(1+(j-1)*n_MLD_var+5,1),...
-                            -M_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))<=u{1,i}(1+(j-1)*n_MLD_var+6,1)- d{1,i}(j,1)<=-m_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))]; %gamma_3 = gamma1 d
+                            -M_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))<=u{1,i}(1+(j-1)*n_MLD_var+6,1)- d{1,i}(j,1)<=-m_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))]; %gamma_2 = gamma1 d
 
-                        constraints= [constraints, u{1,i}(1+(j-1)*n_MLD_var+6,1)-u{1,i}(1+(j-1)*n_MLD_var+5,1)*16>=0];
+                        constraints= [constraints, u{1,i}(1+(j-1)*n_MLD_var+6,1)-u{1,i}(1+(j-1)*n_MLD_var+5,1)*distance1(j,1)>=0];
                     end                     
                 elseif flag_LC==1
+                    
                     for j=1:1:width(x_o1)
                         % Lane of the jth obstacle vehicle (that lies
                         % within the ROI)
                         l_j= x_o1(2,j);
                         % MLD Constraints
-                        constraints= [constraints, d{1,i+1}(j,1)== d{1,i}(j,1)+ T*(x_o1(1,j)-v{1,i}(1,1))];
+                        
                         constraints= [constraints, (M_l-(l_j+ep2))*u{1,i}(1+(j-1)*n_MLD_var+1,1)<= M_l-l{1,i}(1,1),...
                             ((l_j+ep2)+ep-m_l)*u{1,i}(1+(j-1)*n_MLD_var+1,1)>= ep+(l_j+ep2)-l{1,i}(1,1),...
                             binary(u{1,i}(1+(j-1)*n_MLD_var+1,1))]; %beta_1
@@ -505,7 +544,7 @@ while long_pos_host<=road_len
                         constraints= [constraints, m_dj*u{1,i}(1+(j-1)*n_MLD_var+5,1)<=u{1,i}(1+(j-1)*n_MLD_var+6,1)<=M_dj*u{1,i}(1+(j-1)*n_MLD_var+5,1),...
                             -M_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))<=u{1,i}(1+(j-1)*n_MLD_var+6,1)- d{1,i}(j,1)<=-m_dj*(1-u{1,i}(1+(j-1)*n_MLD_var+5,1))]; %gamma_3 = gamma1 d
 
-                        constraints= [constraints, u{1,i}(1+(j-1)*n_MLD_var+6,1)-u{1,i}(1+(j-1)*n_MLD_var+5,1)*16>=0];
+                        constraints= [constraints, u{1,i}(1+(j-1)*n_MLD_var+6,1)-u{1,i}(1+(j-1)*n_MLD_var+5,1)*distance1(j,1)>=0];
                     end
                 end
                 % Evolution of the obstacle vehicle data
@@ -539,6 +578,7 @@ while long_pos_host<=road_len
     %% Data Storage
     % Increment the count
     count= count+1;
+    display(count);
     if x_h(2,1)==1
         lat_pos_host= 4.5;
     elseif x_h(2,1)==0
@@ -582,6 +622,7 @@ while long_pos_host<=road_len
     x_OV_list_mat= horzcat(x_OV_list{:});
     y_OV_list_mat= horzcat(y_OV_list{:});
     end
+    display(d_copy);
     a_HV_list(count,1)= u_h(1,1); 
     v_HV_list(count,1)= x_h(1,1);
     x_HV_list(count,1)= long_pos_host;
@@ -597,7 +638,7 @@ while long_pos_host<=road_len
     
     a_traj_list(count,1)= u_traj_MIMPC;
     v_traj_list(count,1)= x_traj_MIMPC(1,1);
-   l_traj_list(count,1)= x_traj_MIMPC(2,1);
+    l_traj_list(count,1)= x_traj_MIMPC(2,1);
    
     %% Plot 1  
     % First plot the given data. This data includes the road and lane markers,
@@ -609,12 +650,12 @@ while long_pos_host<=road_len
     % at the initial step the current value is the optimal state of the host
     % vehicle. 
     
-%     if count==328
-%         display(count);
-%     end
+    if count==430
+        display(count);
+    end
     % x and y position of the host vehicle.
     name= ['Fig' num2str(count)];
-    R= rem(count,50);
+    R= rem(count,10);
     if (R==0)
         figure(count)
         subplot(6,1,1)
@@ -681,10 +722,10 @@ while long_pos_host<=road_len
         legend
         subplot(6,1,5)
         hold on;
-        plot(x_HV_list,flag_delta_list,'g', 'DisplayName','Flag Delta')
+%         plot(x_HV_list,flag_delta_list,'g', 'DisplayName','Flag Delta')
         plot(x_HV_list,flag_LC_list,'b', 'DisplayName','Flag LC', 'LineStyle', '--')
-        plot(x_HV_list,flag_ND_list,'r', 'DisplayName','Flag ND')
-        plot(x_HV_list,flag_ND_roi_list,'m', 'DisplayName','Flag ND Roi', 'LineStyle', '--')
+%         plot(x_HV_list,flag_ND_list,'r', 'DisplayName','Flag ND')
+%         plot(x_HV_list,flag_ND_roi_list,'m', 'DisplayName','Flag ND Roi', 'LineStyle', '--')
         xlabel('Longitudinal Distance') 
         ylabel('Distance')
         title('Distance Metric')
@@ -706,66 +747,6 @@ X_obs_list= cell2mat(X_obs_list);
 Y_ref_list= cell2mat(Y_ref_list);
 u_ref_list= cell2mat(u_ref_list);
 toc
-
-%% Plot 2 
-% % distance=0;
-% for i= 1:width(x_o_0)
-%     V_rel(i)= abs(x_h_0(1,1)-x_o_0(1,i));
-%     out{i}= sprintf('V_{rel_{h-o%d}}= %d', i, V_rel(i));
-% end
-% v1234= out{1};
-% if width(x_o_0)>1
-%     for i=1:width(x_o_0)-1
-%         v1234= append(v1234,' ,', out{i+1});
-%     end
-% end
-% figure(1)
-% subplot(2,1,1)
-% % for i= 1:length(Y_var)
-% %     for j=1:length(X_var)
-% %         x_h(2,1)= X_var(j);
-% %         x_h(3,1)= Y_var(i);
-% %         [apf_lane, apf_road, apf_obst]= U(const_o1, const_r, x_o, x_h, rl, distance, size_veh);
-% %         apf_obst1(i,j)= double(apf_obst(X_var(j),Y_var(i)));
-% %     end
-% % end
-% % contour(X_var,Y_var,apf_obst1,500);
-% hold on;
-% for i=1:1:width(x_o)
-%     disname= sprintf('Path of OV %d',i);
-%     plot(X_o_list(:,i),Y_o_list(:,i), 'Color','k', 'DisplayName',disname);
-% end
-% % [bound_OV1]= rect_p(size_veh_act, x_o_0, 1);
-% [bound_OV1]= rect_p(size_veh, x_o_0, 1);
-% [tria_v1]= trian(bound_OV1, distance, x_o_0);
-% % [bound_OV2]= rect_p(size_veh_act, x_o, 1);
-% [bound_OV2]= rect_p(size_veh, x_o, 1);
-% [tria_v2]= trian(bound_OV2, distance, x_o);
-% % [bound_OV3]= rect_p(size_veh_act, x_o_0, 1);
-% rect_plot(bound_OV1, tria_v1,1);
-% rect_plot(bound_OV2, tria_v2,1);
-% % rect_plot(bound_OV3, tria_v1,2);
-% plotdata2(x_h, x_o, const_o, const_r);
-% plot(X_h_list,Y_h_list, 'Color','b', 'DisplayName','Path of HV');
-%  
-% % yline(12, 'k')
-% ylim([loc_road_bound(1,1) loc_road_bound(1,2)]);
-% xlim([0 road_len]);
-% % legend('Path of HV','Path of OV1','Path of OV2','Lane Boundaries',...
-% %     'Road Boundaries', 'Lane Centers', 'Initial Obstacle Position',...
-% %     'Final Obstacle Position');
-% legend
-% titel0= ['Basic MPC with reference trajectory given with relative velocities, '];
-% titel1= [', predicition horizon N_p=' num2str(N_p) ', sampling time T=' num2str(T) ' and tuning variable A_{obst}=' num2str(A)];
-% titel= append(titel0, v1234, titel1);
-% title(titel)
-% subplot(2,1,2)
-% hold on;
-% plot(X_h_list,v_x_h_list, 'Color','r', 'DisplayName','Path of HV')
-% xlabel('Distance in the Longitudinal Direction') 
-% ylabel('Longitudinal Velocity Direction')
-% title('Longitudinal Velocity of HV')
-% toc
 
 %% Functions
 % Prediction car model used in the MPC Problem. Use of a dynamics vehicle
@@ -1347,12 +1328,14 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index41]= ref_tr
                     flag_delta= 0; % This shows that there is no vehicle  
                     % in front of the HV in the same lane
                     x_o_front_SL= [];
+                    d_o_front_SL= [];
                     index41=[];
                 end
             else
                 flag_delta= 0; % This shows that there is no vehicle  
                 % in front of the HV in the same lane
                 x_o_front_SL= [];
+                d_o_front_SL= [];
                 index41=[];
             end
               % To find the OV in front of and behind the vehicle in the adjacent
@@ -1411,401 +1394,6 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index41]= ref_tr
         end
     end
 
-%% 
-% % To find the obstacles immediatly around the HV so as to set an v_x for
-% % lane change
-% 
-% % Check which lane number the host and obstacles are in 
-% for i= 1:1:n_lanes
-%     if x_h(3,1)>=all_bound(1,i) && x_h(3,1)<=all_bound(1,i+1)
-%         lane_host= i-1;
-%     end
-%     for j= 1:1:width(x_o)
-%         if x_o(3,j)>=all_bound(1,i) && x_o(3,j)<=all_bound(1,i+1)
-%             lane_obst(j,1)= i-1;
-%         end
-%     end
-% end
-% % Check if an obstacle is on the same lane or the adjacent lanes 
-% % as the host vehicle and to save the index of such obstacle
-% count0= 0;
-% count1= 0;
-% count11=0;
-% flag_alpha1= zeros(width(x_o),1);
-% flag_alpha2= zeros(width(x_o),1);
-% for i= 1:1:width(x_o)
-%     if abs(lane_obst(i,1)-lane_host)==0% To check the total number of vehicles as the 
-%         % same lane as the HV
-%         flag_alpha1(i,1)=1; % set this flag if the corresponding OV is in 
-%         % the same lane as the HV
-%         count0= count0+1; % number of OV in the same lane and the HV
-%         index0(count0,1)= i; % Index of the obstacles on the same lane as
-%         % the host vehicle
-%     elseif abs(lane_obst(i,1)-lane_host)==1% To check the which OV's
-%         % are on adjacent lane of the HV
-%         count1= count1+1; % number of vehicles in the adjacent lane of the HV
-%         flag_alpha2(i,1)= 1;% set this flag if the corresponding OV if
-%         % if it on the adjacent lane of the HV
-%         index1(count1,1)=i;% Index of the obstacles which are on 
-%         % the adjacent lane of the HV
-%     else % To check which vehicles are farther away from the HV by more
-%         % than one lane.
-%         count11= count11+1;% total number of vehicles which are farther 
-%         % away from the HV by more than one lane.
-%         index11(count11,1)=i;% index of vehicles which are farther 
-%         % away from the HV by more than one lane.
-%     end
-% end
-% % Check which obstacles in the same lane as the HV are infront of and 
-% % behind the HV
-% count21= 0;
-% count22= 0;
-% if count0>=1
-%     for i= 1:1:count0
-%         if x_o(2,index0(i,1))>x_h(2,1)
-%             count21= count21+1;% number of obstacles in front of the HV
-%             flag_beta1(i,1)= 1;% flag is 1 if the vehicle is infront of the HV
-%             index21(count21,1)= index0(i,1); % Index of the vehicles on the same
-%             % lane as the host vehicle and in front of the host vehicle
-%         elseif x_o(2,index0(i,1))<=x_h(2,1)
-%             count22= count22+1;% number of obstacles in front of the HV
-%             flag_beta1(i,1)= 0;% flag is 1 if the vehicle is behind the HV
-%             index22(count22,1)= index0(i,1); % Index of the vehicles on the same
-%             % lane as the host vehicle and behind of the host vehicle
-%         end
-%     end
-%     if count21>=1
-%         flag_delta= 1; % This shows that there is a vehicle 
-%         % in front of the HV in the same lane
-%         for i=1:1:count21
-%             % Here we have to find the index of the obstacle which has the
-%             % least x value or in other words find the obstacle right infrnt of
-%             % the HV inthe same lane. 
-%             x_o_scrut1{1,i}=x_o(:,index21(i,1)); 
-%         end
-%         x_o_scrut1= horzcat(x_o_scrut1{:});
-%         [min_x, index41]= min(x_o_scrut1(2,:));
-%         x_o_front_SL= x_o_scrut1(:,index41);
-%         index41= index21(index41,1);
-%     else
-%         flag_delta= 0; % This shows that there is no vehicle  
-%         % in front of the HV in the same lane
-%     end
-% else
-%     flag_delta= 0; % This shows that there is no vehicle  
-%     % in front of the HV in the same lane
-% end
-% % Check which obstacles in the adjacent lanes as the HV are infront of and 
-% % behind the HV
-% count31= 0;
-% count32= 0;
-% if count1>=1
-%     for i= 1:1:count1
-%         if x_o(2,index1(i,1))>x_h(2,1)
-%             count31= count31+1;% number of OV in the adjacent lanes in front of the HV
-%             flag_gamma1(i,1)= 1;% flag is 1 if the OV in the adjacent lanes is 
-%             % infront of the HV
-%             index31(count31,1)= index1(i,1); % Index of the vehicles on the adjacent
-%             % lanes as the host vehicle and in front of the host vehicle
-%         elseif x_o(2,index1(i,1))<=x_h(2,1)
-%             count32= count32+1;% number of OV in the adjacent lanes behind of the HV
-%             flag_gamma1(i,1)= 1;% flag is 0 if the OV in the adjacent lanes is 
-%             % behind of the HV
-%             index32(count32,1)= index1(i,1); % Index of the vehicles on the adjacent
-%             % lanes as the host vehicle and behind of the host vehicle
-%         end
-%     end
-%     % This part is to find the vehicle in front of the host vehicle in the
-%     % adjacent lane closest to the host vehicle.
-%     if count31>=1
-%         flag_epsilon1= 1; % This shows that there is a vehicle 
-%         % in front of the HV in the adjacent lane
-%         for i=1:1:count31
-%             % Here we have to find the index of the obstacle which has the
-%             % least x value or in other words find the obstacle right infront of
-%             % the HV inthe adjacent lane. 
-%             x_o_scrut2{1,i}=x_o(:,index31(i,1)); 
-%         end
-%         x_o_scrut2= horzcat(x_o_scrut2{:});
-%         [min_x, index42]= min(x_o_scrut2(2,:));
-%         x_o_front_AL= x_o_scrut2(:,index42);
-%         index42= index31(index42,1);
-%     else
-%         flag_epsilon1= 0; % This shows that there is no vehicle  
-%         % in front of the HV in the adjacent lane
-%     end
-%     if count32>=1
-%         flag_epsilon2= 1; % This shows that there is a vehicle 
-%         % behind the HV in the adjacent lane
-%         for i=1:1:count32
-%             % Here we have to find the index of the obstacle which has the
-%             % least x value or in other words find the obstacle right
-%             % behind the HV inthe adjacent lane.  
-%             x_o_scrut3{1,i}=x_o(:,index32(i,1)); 
-%         end
-%         x_o_scrut3= horzcat(x_o_scrut3{:});
-%         [max_x, index43]= max(x_o_scrut3(2,:));
-%         x_o_rear_AL= x_o_scrut3(:,index43);
-%         index43= index32(index43,1);
-%     else
-%         flag_epsilon2= 0; % This shows that there is no vehicle  
-%         % behind of the HV in the adjacent lane
-%     end
-% else
-%     flag_epsilon1= 0; % This shows that there is no vehicle  
-%         % in front of the HV in the adjacent lane
-%     flag_epsilon2= 0; % % This shows that there is no vehicle  
-%         % behind the HV in the adjacent lane
-% end
-
-%% For the measurement reference, v_x_ref and y_ref
-
-% % To get the reference longitudinal velocity and reference lateral position, we first check of we have a
-% % vehicle within the box around the HV. If there is no vehicle then lane
-% % change happens. Else lane change does not happen. 
-% 
-% % First let us define the time taken by the HV to change lanes in with the
-% % previous values of v_x and v_y
-% dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
-% time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
-% if flag_delta==1
-%     if x_o_front_SL(2,1)<=x_h(2,1)+(distance(index41,1))+5*size_veh(1,1)
-%         if flag_epsilon1==0 && flag_epsilon2==0
-%             if x_o_front_SL(1,1)+5>= x_h_0(1,1)
-%                 tilde_vx_ref= (x_o_front_SL(1,1)+5)* ones(N_p,1);
-%             else
-%                 tilde_vx_ref= x_h_0(1,1)*ones(N_p,1);
-%             end
-%             if x_h(3,1)<=size_lane
-%                 tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%             elseif x_h(3,1)>size_lane
-%                 tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%             end 
-%         elseif flag_epsilon1==1 && flag_epsilon2==0
-% %             if x_h(2,1)> x_o_front_AL(2,1)- (x_h(1,1)-x_o_front_AL(1,1))*...
-% %                     time_LC -distance(index42,1)
-%             if x_o_front_AL(2,1)<=x_h(2,1) + distance(index42,1)-...
-%                 (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
-%                 if x_o_front_SL(1,1)+5>= x_h_0(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5)* ones(N_p,1);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1)* ones(N_p,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1)* ones(N_p,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 end 
-%             end
-%         elseif flag_epsilon1==0 && flag_epsilon2==1
-% %             if x_h(2,1)< x_o_rear_AL(2,1)+ (x_h(1,1)-x_o_rear_AL(1,1))*...
-% %                     time_LC+distance(index43,1)
-%             if x_o_rear_AL(2,1)>= x_h(2,1) - distance(index43,1) - ...
-%                 (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
-%                 if x_o_front_SL(1,1)+5>= x_h_0(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5)* ones(N_p,1);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1)* ones(N_p,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1)* ones(N_p,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 end 
-%             end
-%         elseif flag_epsilon1==1 && flag_epsilon2==1
-%             if x_o_front_AL(2,1)<=x_h(2,1) + distance(index42,1)-...
-%                 (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
-%                     x_o_rear_AL(2,1)>= x_h(2,1) - distance(index43,1) - ...
-%                     (x_h(1,1)-x_o_rear_AL(1,1))*time_LC 
-%                 if x_o_front_SL(1,1)+5>= x_h_0(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5)* ones(N_p,1);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1)*ones(N_p,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1)* ones(N_p,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%                 end 
-%             end
-%         end
-%     else 
-%         tilde_vx_ref= x_h_0(1,1)* ones(N_p,1);
-%         if x_h(3,1)<=size_lane
-%             tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%         elseif x_h(3,1)>size_lane
-%             tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%         end 
-%     end
-% elseif flag_delta==0
-%     % no lane change neccesary -> keep going forward at the initial
-%     % velocity of the HV
-%     tilde_vx_ref= x_h_0(1,1)* ones(N_p,1);
-%     if x_h(3,1)<=size_lane
-%         tilde_y_ref= loc_lane_cent(1)* ones(N_p,1);
-%     elseif x_h(3,1)>size_lane
-%         tilde_y_ref= loc_lane_cent(2)* ones(N_p,1);
-%     end 
-% end
-
-%% For the measurement reference, v_x_ref and y_ref and input reference l_ref
-% 
-% % To get the reference longitudinal velocity and reference lateral position, we first check of we have a
-% % vehicle within the box around the HV. If there is no vehicle then lane
-% % change happens. Else lane change does not happen. 
-% 
-% % First let us define the time taken by the HV to change lanes in with the
-% % previous values of v_x and v_y
-% dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
-% time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
-% 
-% if flag_delta==1 % There is a vehicle in front in the same lane
-%     if x_o_front_SL(2,1)-x_h(2,1)<=distance(index41,1)+10*size_veh(1,1)
-%         if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
-%             % infront of or behind the HV in the adjacent lane.
-%             if x_o_front_SL(1,1)>= x_h(1,1)
-%                 tilde_vx_ref= (x_o_front_SL(1,1)+5);
-%             else
-%                 tilde_vx_ref= x_h_0(1,1);
-%             end
-%             if x_h(3,1)<=size_lane
-%                 tilde_y_ref= loc_lane_cent(2);
-%                 tilde_l_ref= 1;
-%             elseif x_h(3,1)>size_lane
-%                 tilde_y_ref= loc_lane_cent(1);
-%                 tilde_l_ref= 0;
-%             end 
-%         elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
-%             % infront of the HV in the adjacent lane but not behind the
-%             % vehicle.
-% %             if x_h(2,1)> x_o_front_AL(2,1)- (x_h(1,1)-x_o_front_AL(1,1))*...
-% %                     time_LC -distance(index42,1)
-%             if x_o_front_AL(2,1)-x_h(2,1)>= distance(index42,1)+...
-%                 (x_h(1,1)-x_o_front_AL(1,1))*time_LC+10*size_veh(1,1)
-%                 if x_o_front_SL(1,1)>= x_h(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 end 
-%             end
-%         elseif flag_epsilon1==0 && flag_epsilon2==1 % There are vehicles
-%             % behind the HV in the adjacent lane but not infront of the
-%             % HV.
-% %             if x_h(2,1)< x_o_rear_AL(2,1)+ (x_h(1,1)-x_o_rear_AL(1,1))*...
-% %                     time_LC+distance(index43,1)
-%             if x_h(2,1)-x_o_rear_AL(2,1)>=  distance(index43,1) - ...
-%                 (x_h(1,1)-x_o_rear_AL(1,1))*time_LC+10*size_veh(1,1)
-%                 if x_o_front_SL(1,1)>= x_h(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 end 
-%             end
-%         elseif flag_epsilon1==1 && flag_epsilon2==1
-%             if x_o_front_AL(2,1)-x_h(2,1)>=  distance(index42,1)+...
-%                 (x_h(1,1)-x_o_front_AL(1,1))*time_LC +10*size_veh(1,1) &&...
-%                     x_h(2,1)-x_o_rear_AL(2,1)>=   distance(index43,1) - ...
-%                     (x_h(1,1)-x_o_rear_AL(1,1))*time_LC +10*size_veh(1,1)
-%                 if x_o_front_SL(1,1)>= x_h(1,1)
-%                     tilde_vx_ref= (x_o_front_SL(1,1)+5);
-%                 else
-%                     tilde_vx_ref= x_h_0(1,1);
-%                 end
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 end 
-%             else
-%                 tilde_vx_ref= x_o_front_SL(1,1);
-%                 if x_h(3,1)<=size_lane
-%                     tilde_y_ref= loc_lane_cent(1);
-%                     tilde_l_ref= 0;
-%                 elseif x_h(3,1)>size_lane
-%                     tilde_y_ref= loc_lane_cent(2);
-%                     tilde_l_ref= 1;
-%                 end 
-%             end
-%         end
-%     else 
-%         tilde_vx_ref= x_h_0(1,1);
-%         if x_h(3,1)<=size_lane
-%             tilde_y_ref= loc_lane_cent(1);
-%             tilde_l_ref= 0;
-%         elseif x_h(3,1)>size_lane
-%             tilde_y_ref= loc_lane_cent(2);
-%             tilde_l_ref= 1;
-%         end 
-%     end
-% elseif flag_delta==0
-%     % no lane change neccesary -> keep going forward at the initial
-%     % velocity of the HV
-%     tilde_vx_ref= x_h_0(1,1);
-%     if x_h(3,1)<=size_lane
-%         tilde_y_ref= loc_lane_cent(1);
-%         tilde_l_ref= 0;
-%     elseif x_h(3,1)>size_lane
-%         tilde_y_ref= loc_lane_cent(2);
-%         tilde_l_ref= 1;
-%     end 
-% end
-
 %%
 
     if flag_ND==1
@@ -1821,7 +1409,7 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index41]= ref_tr
                     % in the safety region. Then stay in the current lane.
                  l_ref= lane_host;
                  vx_ref= x_h_0(1,1);
-                    if d_o_front_SL<=230+ (x_h(1,1)-x_o_front_SL(1,1))*size_veh(1,1)
+                    if d_o_front_SL<=230+(x_h(1,1)-x_o_front_SL(1,1))*size_veh(1,1)
                         vx_ref= x_o_front_SL(1,1);
                     end
                 elseif flag_LC==1 % Implies that there is no vehicle in the adjacent
@@ -1832,19 +1420,8 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index41]= ref_tr
                             l_ref=0;
                         elseif lane_host==0
                             l_ref=1;
-                        end
-%                             if abs(x_o_front_SL(1,1)-x_h(1,1))>=5
-%                                 vx_ref= x_h_0(1,1);
-%                             elseif abs(x_o_front_SL(1,1)-x_h(1,1))<5
-%                                 v_x_ref_temp= x_o_front_SL(1,1)-x_h(1,1);
-%                                 if v_x_ref_temp>=0
-%                                     vx_ref= x_o_front_SL(1,1)+5;
-%                                 else
-%                                     vx_ref= x_h_0(1,1)+5;
-%                                 end
-%                             end                                
+                        end                             
                     else
-%                         vx_ref= x_h_0(1,1);
                         l_ref= lane_host;
                     end
                 end
@@ -1892,11 +1469,9 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, x_o_front_SL, index41]= ref_tr
 %     y_traj(3,1)= tilde_r_ref;
 %     y_traj(4,1)= tilde_psi_ref;
     
- 
 end
 
 function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_veh, a_x_max, distance, x_h_0, d)
-%%
 
     % Check if the above obstacle is on the same lane or the adjacent lanes 
     % as the host vehicle and to save the index of such obstacle
@@ -2112,568 +1687,6 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_v
             flag_LC=0;
         end
     end 
-end
-
-% Function to Generate the extended matrices of the state space system
-function [tilde_A tilde_B tilde_C tilde_A_u tilde_A_minus tilde_B_minus]= mpc_model(N_p, ss_d)
-
-    %% Derivation of A_tilde
-
-    for i= 1:N_p
-        tilde_A{i,1}=  (ss_d.A)^i;
-    end
-    tilde_A= vertcat(tilde_A{:});
-
-    %% Derivation of B_tilde
-
-    for i= 1:N_p
-        tilde_B_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_temp1= vertcat(tilde_B_temp1{:});
-    [row_tilde_B_temp1,col_tilde_B_temp1]= size(tilde_B_temp1);
-    tilde_B= zeros(row_tilde_B_temp1, col_tilde_B_temp1*N_p);
-    for i=1:N_p
-        alpha= col_tilde_B_temp1*i-(col_tilde_B_temp1-1):col_tilde_B_temp1*i;
-        tilde_B(height(ss_d.B)*(i-1)+1:row_tilde_B_temp1,alpha)= tilde_B_temp1(1:...
-            (end-height(ss_d.B)*(i-1)),:);
-    end
-
-    %% Derivation of C_tilde
-    tilde_C_temp = repmat({ss_d.C}, 1, N_p);  
-    tilde_C = blkdiag(tilde_C_temp{:});
-
-   %% Derivation of tilde_A_minus
-   
-    [row_A, col_A]= size(ss_d.A);
-    for i= 1:N_p
-        tilde_A_minus{i,1}=  (ss_d.A-eye(row_A))*(ss_d.A)^(i-1);
-    end
-    tilde_A_minus= vertcat(tilde_A_minus{:});
-
-    %% Derivation of tilde_B_minus
-    for i= 1:N_p
-        tilde_B_minus_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_minus_temp2{1,1}= tilde_B_minus_temp1{1,1};
-    for i= 1:N_p-1
-        tilde_B_minus_temp2{i+1,1}=  tilde_B_minus_temp1{i+1,1}-tilde_B_minus_temp1{i,1};
-    end
-    tilde_B_minus_temp2= vertcat(tilde_B_minus_temp2{:});
-    [row_tilde_B_minus_temp2,col_tilde_B_minus_temp2]= size(tilde_B_minus_temp2);
-    tilde_B_minus= zeros(row_tilde_B_minus_temp2, col_tilde_B_minus_temp2*N_p);
-    for i=1:N_p
-        alpha= col_tilde_B_temp1*i-(col_tilde_B_temp1-1):col_tilde_B_temp1*i;
-        tilde_B_minus(height(ss_d.B)*(i-1)+1:row_tilde_B_minus_temp2,alpha)= tilde_B_minus_temp2(1:...
-                    (end-height(ss_d.B)*(i-1)),:);
-    end    
-
-    %% Derivation of A_u_tilde
-    
-%     tilde_A_u= zeros(width(ss_d.B)*N_p,width(ss_d.B)*N_p);
-%     tilde_A_u(1:width(ss_d.B),1:width(ss_d.B))=eye(width(ss_d.B));
-%     te1= zeros(1,width(ss_d.B)*N_p);
-%     te2= zeros(width(ss_d.B)*(N_p-1),width(ss_d.B)*N_p);
-%     temp= [-1 zeros(1,width(ss_d.B)-1) -1];
-%     te1(1,1:width(temp))= temp;
-%     for i=1:width(ss_d.B)*(N_p-1)
-%         te2(i,i:end)= te1(1:(N_p+i-1)*width(ss_d.B)- (width(temp)*(i-1)));
-%     end
-%     tilde_A_u(width(ss_d.B)+1:end,:)= te2;
-    temp= eye(width(ss_d.B));
-    temp1= zeros(width(ss_d.B));
-    for i= 1:1:N_p
-        for j= 1:1:N_p
-    tilde_A_u{i,j}= zeros(width(ss_d.B));
-        end
-    end
-   tilde_A_u{1,1}= temp; 
-    for i= 2:1:N_p
-    tilde_A_u{i,i-1}= temp;
-    tilde_A_u{i,i}= -temp;
-    end
-   tilde_A_u= cell2mat(tilde_A_u);
-
-end
-
-% Function to Generate the extended matrices of the state space system
-function [tilde_A tilde_B tilde_C tilde_A_u tilde_A_minus tilde_B_minus]= mpc_model1(N_p, ss_d, x_h, u, const, T)
-%     u= [1000 0]';
-    % Basics
-    A_temp{1,1}= ss_d.A;
-    B_temp{1,1}= ss_d.B;
-    C_temp{1,1}= ss_d.C;
-    D_temp{1,1}= ss_d.D;
-    x_temp{1,1}= x_h;
-    for i= 2:1:N_p
-        x_temp{i,1}= A_temp{i-1,1}*x_temp{i-1,1}+B_temp{i-1,1}*u;
-        ss_d_temp= car_model2(const, T, x_temp{i,1}, u);
-        A_temp{i,1}= ss_d_temp.A;
-        B_temp{i,1}= ss_d_temp.B;
-        C_temp{i,1}= ss_d_temp.C;
-        D_temp{i,1}= ss_d_temp.D;
-    end
-    
-%%
-% Derivation of A_tilde
-
-    for i= N_p:-1:1
-        tilde_A{N_p-i+1,1}= matprodtilde(i,0,A_temp, N_p);
-    end
-    tilde_A= vertcat(tilde_A{:});    
-%%
-%     Derivation of B_tilde
-    for i= 1:1:N_p
-        B_temp1= B_temp{i,1};
-        [r_b, c_b]= size(B_temp1);
-        B_zero= zeros(r_b,c_b);
-        if i>1
-           for k= 2:1:i
-               tilde_B{k-1,i}= B_zero;
-           end
-           tilde_B{i,i}= B_temp1;
-        elseif i==1
-            k=1;
-            tilde_B{i,i}= B_temp1;
-        end
-        for l=k+1:1:N_p
-            tilde_B{l,i}= matprodtilde(N_p-l+1,i,A_temp,N_p)*B_temp1;
-        end
-    end
-    tilde_B= cell2mat(tilde_B);
-%%
-    % Derivation of C_tilde
-    tilde_C= blkdiag(C_temp{:,1});
-%%
-%   % Derivation of tilde_A_minus
-    [row_A, col_A]= size(ss_d.A);
-    for i= 1:N_p
-        tilde_A_minus{i,1}=  eye(row_A)*(ss_d.A)^(i-1);
-    end
-    tilde_A_minus= vertcat(tilde_A_minus{:});
-%%
-% %    % Derivation of tilde_B_minus
-    for i= 1:N_p
-        tilde_B_minus_temp1{i,1}=  (ss_d.A^(i-1)) * ss_d.B;
-    end
-    tilde_B_minus_temp2{1,1}= tilde_B_minus_temp1{1,1};
-    for i= 1:N_p-1
-        tilde_B_minus_temp2{i+1,1}=  tilde_B_minus_temp1{i+1,1}-tilde_B_minus_temp1{i,1};
-    end
-    tilde_B_minus_temp2= vertcat(tilde_B_minus_temp2{:});
-    [row_tilde_B_minus_temp2,col_tilde_B_minus_temp2]= size(tilde_B_minus_temp2);
-    tilde_B_minus= zeros(row_tilde_B_minus_temp2, col_tilde_B_minus_temp2*N_p);
-    for i=1:N_p
-        if col_tilde_B_minus_temp2==1
-            alpha= i;
-        elseif col_tilde_B_minus_temp2==2
-            alpha= (2*i-1):2*i;
-        end
-        tilde_B_minus(6*(i-1)+1:row_tilde_B_minus_temp2,alpha)= tilde_B_minus_temp2(1:...
-            (end-6*(i-1)),:);
-    end
-    
-%     te1= zeros(1,N_p);
-%     te2= zeros(N_p-1,N_p);
-%     te1(1,1:2)= [-1 1];
-%     for i=1:N_p-1
-%         te2(i,i:end)= te1(1:N_p-i+1);
-%     end
-%     tilde_A_u= zeros(N_p,N_p);
-%     tilde_A_u(2:end,:)= te2;
-%     tilde_A_u(1,1)=1;
-%%
-    % Derivation of A_u_tilde
-    
-    row_tilde_B_temp1= height(ss_d.B)*N_p;
-    col_tilde_B_temp1= width(ss_d.B);
-    tilde_A_u= zeros(width(ss_d.B)*N_p,width(ss_d.B)*N_p);
-    tilde_A_u(1:width(ss_d.B),1:width(ss_d.B))=eye(width(ss_d.B));
-    te1= zeros(1,width(ss_d.B)*N_p);
-    te2= zeros(width(ss_d.B)*(N_p-1),width(ss_d.B)*N_p);
-    if width(ss_d.B)==1
-        temp= [-1 1];
-    elseif width(ss_d.B)==2
-        temp= [-1 0 1];
-    end   
-    te1(1,1:width(temp))= temp;
-    for i=1:width(ss_d.B)*(N_p-1)
-        te2(i,i:end)= te1(1:(N_p+i-1)*width(ss_d.B)- (width(temp)*(i-1)));
-    end
-    tilde_A_u(width(ss_d.B)+1:end,:)= te2;
-
-end
-
-% Function for extended matrices of the weights of the cost function
-function [tilde_lambda_y tilde_lambda_u tilde_lambda_delta tilde_lambda_delta_x tilde_lambda_r tilde_lambda_o]...
-    = mpc_weights(N_p, lambda_y, lambda_u, lambda_delta, lambda_r, lambda_o, lambda_delta_x)
-tilde_lambda_y= repmat({lambda_y}, 1, N_p);  
-tilde_lambda_y = blkdiag(tilde_lambda_y{:});
-
-tilde_lambda_u= repmat({lambda_u}, 1, N_p);  
-tilde_lambda_u = blkdiag(tilde_lambda_u{:});
-
-tilde_lambda_delta= repmat({lambda_delta}, 1, N_p);  
-tilde_lambda_delta = blkdiag(tilde_lambda_delta{:});
-
-tilde_lambda_r= repmat({lambda_r}, 1, N_p);  
-tilde_lambda_r = blkdiag(tilde_lambda_r{:});
-
-tilde_lambda_o= repmat({lambda_o}, 1, N_p);  
-tilde_lambda_o = blkdiag(tilde_lambda_o{:});
-
-tilde_lambda_delta_x= repmat({lambda_delta_x}, 1, N_p);  
-tilde_lambda_delta_x= blkdiag(tilde_lambda_delta_x{:});
-end
-
-% Function which generates the matrices to be used in the quadratic cost
-% function which represent the taylor series approximation of the APF.
-function [A1 A2 A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh, const_o2)
-    A= const_o(1,1);
-    b= const_o(1,2);
-    eta= const_r(1,1);
-    A_lane= const_r(1,2);
-    sig_lane = const_r(1,3);
-    A_lane1 = const_r(1,4);
-    sig_lane1 = const_r(1,5);
-    n_lanes = const_r(1,6);
-    alpha= 6 + (n_lanes-1);
-    loc_lane_bound = const_r(1,7:alpha);
-    loc_road_bound = const_r(1,alpha+1:(alpha+2));
-    all_bound= const_r(1, (alpha+n_lanes+1):end);
-    [row, col]=size(x_o);
-    x= x_h(2,1);
-    y= x_h(3,1);
-    a_skew= const_o2(1,1);
-    b_skew= const_o2(1,2);
-    opt_l= const_o2(1,3);
-    if opt_l==0
-        opt_y=1.5;
-    elseif opt_l==1
-        opt_y=4.5;
-    end
-    % Given the vertices of the obstacle, we can find then distance from a
-    % point to all the vertices and all the boundaries, and find the minimum of
-    % these values. 
-    [bound_OV]= rect_p(size_veh, x_o, rl);
-    [tria_v]= trian(bound_OV, distance, x_o);
-    [v_alp1 v_alp2]= vertex(bound_OV, tria_v);
-    [si_form]= equations(v_alp1, v_alp2, x_o);
-    switch select   
-        case 'obst'
-%% Obstacle Potential             
-            % write the derivative for the obstacle potential for x, y, xx,
-            % xy, yx, and yy. Substitute the actual values and then get the
-            % values of A1, A2, and A3
-            for i= 1:1:width(x_o)
-                if x_o(6,i)>0
-                    flag(i)= region1(si_form(:,i), x_h);
-                elseif x_o(6,i)==0
-                    flag(i)= region2(si_form(:,i), x_h, v_alp1{1,i});
-                elseif x_o(6,i)<0
-                    flag(i)= region3(si_form(:,i), x_h);
-                end
-                [K(i), apf_obst(i), obst_u_x(i), obst_u_y(i),...
-                    obst_u_xx(i), obst_u_yy(i), obst_u_yx(i), obst_u_xy(i)]...
-                    = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            end
-            %%
-            a1= sum(apf_obst);
-            a2= sum(obst_u_x);
-            a3= sum(obst_u_y);
-            a4= sum(obst_u_xx);
-            a5= sum(obst_u_xy);
-            a6= sum(obst_u_yx);
-            a7= sum(obst_u_yy);
-            
-            A1= a1 - a2*x - a3*y + 0.5*a4*x^2 + a5*x*y + 0.5*a7*y^2;
-
-            A2= [ a2 - a4*x - a5*y; 
-                  a3 - a5*x - a7*y]';
- 
-            A3= [a4 a5;
-                a6 a7];
-        case 'road'
-%% Road Potential
-            % write the derivative for the obstacle potential for x, y, xx,
-            % xy, yx, and yy. Substitute the actual values and then get the
-            % values of A1, A2, and A3
-%             for i = 1:length(loc_road_bound)
-%                 apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^2;
-%                 obst_ur_x(i) = 0;
-%                 obst_ur_y(i) = -eta/((y- loc_road_bound(i))^3);
-%                 obst_ur_xx(i) = 0;
-%                 obst_ur_xy(i) = 0;
-%                 obst_ur_yx(i) = 0;
-%                 obst_ur_yy(i) = (3*eta)/((y-loc_road_bound(i))^4);
-%                 apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^4;
-%                 obst_ur_x(i) = 0;
-%                 obst_ur_y(i) = -(2*eta)/((y- loc_road_bound(i))^5);
-%                 obst_ur_xx(i) = 0;
-%                 obst_ur_xy(i) = 0;
-%                 obst_ur_yx(i) = 0;
-%                 obst_ur_yy(i) = (10*eta)/((y-loc_road_bound(i))^6);
-                apf_road= 0.5*eta*((1/(y- loc_road_bound(1)))^2+(1/(y- loc_road_bound(2)))^2)+b_skew*(exp(a_skew*(y-opt_y))-a_skew*(y-opt_y)-1);
-                obst_ur_x(i) = 0;
-                obst_ur_y(i) = -(eta/2)*((2/(y- loc_road_bound(1)))^3+(2/(y- loc_road_bound(2)))^3)+b_skew*(a*exp(a_skew*(y-opt_y))-a_skew);
-                obst_ur_xx(i) = 0;
-                obst_ur_xy(i) = 0;
-                obst_ur_yx(i) = 0;
-                obst_ur_yy(i) = (eta/2)*((6/(y- loc_road_bound(1)))^4+(6/(y- loc_road_bound(2)))^4)+b_skew*(a_skew^2*exp(a_skew*(y-opt_y)));
-%             end
-            a1= apf_road;
-            a2= obst_ur_x;
-            a3= obst_ur_y;
-            a4= obst_ur_xx;
-            a5= obst_ur_xy;
-            a6= obst_ur_yx;
-            a7= obst_ur_yy;
-            A1= a1 - a2*x - a3*y + 0.5*a4*x^2 + a5*x*y + 0.5*a7*y^2;
-
-            A2= [ a2 - a4*x - a5*y; 
-                  a3 - a5*x - a7*y]';
- 
-            A3= [a4 a5;
-                a6 a7];
-        case 'lane'
-%% Lane Potential
-            % write the derivative for the obstacle potential for x, y, xx,
-            % xy, yx, and yy. Substitute the actual values and then get the
-            % values of A1, A2, and A3
-            for i= 1: length(all_bound)
-                beta_lx(i)= (y-all_bound(i))/sig_lane^2;
-                alpha_lx(i)= ((y- all_bound(i))^2/(2* sig_lane^2));
-                apf_lane(i)= A_lane* exp(-alpha_lx(i));
-                obst_ul_x(i) = 0;
-%                 obst_ul_y(i) = -beta_lx(i)*apf_lane(i);
-                obst_ul_y(i) = -A_lane*beta_lx(i)*exp(-alpha_lx(i));
-                obst_ul_xx(i) = 0;
-                obst_ul_xy(i) = 0;
-                obst_ul_yx(i) = 0;
-                obst_ul_yy(i) = A_lane*beta_lx(i)^2*exp(-alpha_lx(i))-(A_lane*exp(-alpha_lx(i)))/sig_lane^2;
-            end
-            for i= 1: length(loc_road_bound)
-                beta_lx1(i)= (y-loc_road_bound(i))/sig_lane1^2;
-                alpha_lx1(i)= ((y- loc_road_bound(i))^2/(2* sig_lane1^2));
-                apf_lane1(i)= A_lane1* exp(-alpha_lx1(i));
-                obst_ul_x1(i) = 0;
-%                 obst_ul_y(i) = -beta_lx1(i)*apf_lane1(i);
-                obst_ul_y1(i) = -A_lane1*beta_lx1(i)*exp(-alpha_lx1(i));
-                obst_ul_xx1(i) = 0;
-                obst_ul_xy1(i) = 0;
-                obst_ul_yx1(i) = 0;
-                obst_ul_yy1(i) = A_lane1*beta_lx1(i)^2*exp(-alpha_lx1(i))-(A_lane1*exp(-alpha_lx1(i)))/sig_lane1^2;
-            end
-            a1= sum(apf_lane)+sum(apf_lane1);
-            a2= sum(obst_ul_x)+ sum(obst_ul_x1);
-            a3= sum(obst_ul_y)+ sum(obst_ul_y1);
-            a4= sum(obst_ul_xx)+ sum(obst_ul_xx1);
-            a5= sum(obst_ul_xy)+ sum(obst_ul_xy1);
-            a6= sum(obst_ul_yx)+ sum(obst_ul_yx1);
-            a7= sum(obst_ul_yy)+ sum(obst_ul_yy1);
-            
-%             a1= sum(apf_lane);
-%             a2= sum(obst_ul_x);
-%             a3= sum(obst_ul_y);
-%             a4= sum(obst_ul_xx);
-%             a5= sum(obst_ul_xy);
-%             a6= sum(obst_ul_yx);
-%             a7= sum(obst_ul_yy);
-            A1= a1 - a2*x - a3*y + 0.5*a4*x^2 + a5*x*y + 0.5*a7*y^2;
-
-            A2= [ a2 - a4*x - a5*y; 
-                  a3 - a5*x - a7*y]';
- 
-            A3= [a4 a5;
-                a6 a7];
-        case 'rplusl'
-            % Road Potential
-            for i = 1:length(loc_road_bound)
-%                 apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^2;
-%                 obst_ur_x(i) = 0;
-%                 obst_ur_y(i) = -eta/((y- loc_road_bound(i))^3);
-%                 obst_ur_xx(i) = 0;
-%                 obst_ur_xy(i) = 0;
-%                 obst_ur_yx(i) = 0;
-%                 obst_ur_yy(i) = (3*eta)/((y-loc_road_bound(i))^4);
-                apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^4;
-                obst_ur_x(i) = 0;
-                obst_ur_y(i) = -(2*eta)/((y- loc_road_bound(i))^5);
-                obst_ur_xx(i) = 0;
-                obst_ur_xy(i) = 0;
-                obst_ur_yx(i) = 0;
-                obst_ur_yy(i) = (10*eta)/((y-loc_road_bound(i))^6);
-            end
-            % Lane Potential
-            for i= 1: length(all_bound)
-                beta_lx(i)= (y-all_bound(i))/sig_lane^2;
-                alpha_lx(i)= ((y- all_bound(i))^2/(2* sig_lane^2));
-                apf_lane(i)= A_lane* exp(-alpha_lx(i));
-                obst_ul_x(i) = 0;
-                obst_ul_y(i) = -beta_lx(i)*apf_lane(i);
-%                 obst_ul_y(i) = -A_lane*beta_lx(i)*exp(-alpha_lx(i));
-                obst_ul_xx(i) = 0;
-                obst_ul_xy(i) = 0;
-                obst_ul_yx(i) = 0;
-                obst_ul_yy(i) = A_lane*(beta_lx(i)^2)*exp(-alpha_lx(i))-(A_lane*exp(-alpha_lx(i))/sig_lane^2);
-            end
-            for i= 1: length(loc_road_bound)
-                beta_lx1(i)= (y-loc_road_bound(i))/sig_lane1^2;
-                alpha_lx1(i)= ((y- loc_road_bound(i))^2/(2* sig_lane1^2));
-                apf_lane1(i)= A_lane1* exp(-alpha_lx1(i));
-                obst_ul_x1(i) = 0;
-%                 obst_ul_y(i) = -beta_lx(i)*apf_lane(i);
-                obst_ul_y1(i) = -A_lane1*beta_lx1(i)*exp(-alpha_lx1(i));
-                obst_ul_xx1(i) = 0;
-                obst_ul_xy1(i) = 0;
-                obst_ul_yx1(i) = 0;
-                obst_ul_yy1(i) = A_lane1*beta_lx1(i)^2*exp(-alpha_lx1(i))-(A_lane1*exp(-alpha_lx1(i)))/sig_lane1^2;
-            end
-            a1= sum(apf_lane)+sum(apf_lane1)+sum(apf_road);
-            a2= sum(obst_ul_x)+ sum(obst_ul_x1)+sum(obst_ur_x);
-            a3= sum(obst_ul_y)+ sum(obst_ul_y1)+sum(obst_ur_y);
-            a4= sum(obst_ul_xx)+ sum(obst_ul_xx1)+sum(obst_ur_xx);
-            a5= sum(obst_ul_xy)+ sum(obst_ul_xy1)+sum(obst_ur_xy);
-            a6= sum(obst_ul_yx)+ sum(obst_ul_yx1)+sum(obst_ur_yx);
-            a7= sum(obst_ul_yy)+ sum(obst_ul_yy1)+sum(obst_ur_yy);
-            
-%             a1= sum(apf_lane)+sum(apf_road);
-%             a2= sum(obst_ul_x)+sum(obst_ur_x);
-%             a3= sum(obst_ul_y)+sum(obst_ur_y);
-%             a4= sum(obst_ul_xx)+sum(obst_ur_xx);
-%             a5= sum(obst_ul_xy)+sum(obst_ur_xy);
-%             a6= sum(obst_ul_yx)+sum(obst_ur_yx);
-%             a7= sum(obst_ul_yy)+sum(obst_ur_yy);
-            A1= a1 - a2*x - a3*y + 0.5*a4*x^2 + a5*x*y + 0.5*a7*y^2;
-
-            A2= [ a2 - a4*x - a5*y; 
-                  a3 - a5*x - a7*y]';
- 
-            A3= [a4 a5;
-                a6 a7];
-    end
-end
-
-% Function for extended matrices of the taylor approximation of the
-% Artificial Potential field
-function [tilde_C_xy tilde_Ur_0 tilde_Ur_1 tilde_Ur_2 tilde_Uob_0...
-    tilde_Uob_1 tilde_Uob_2]= mpc_apf(N_p, C_xy, Ur_0 ,Ur_1 ,Ur_2, Uob_0...
-    ,Uob_1 ,Uob_2)
-
-% tilde_Uob_0= Uob_0*N_p;
-% 
-% tilde_Uob_1= repmat({Uob_1}, 1, N_p);
-% tilde_Uob_1= horzcat(tilde_Uob_1{:});
-% 
-% tilde_Uob_2= repmat({Uob_2}, 1, N_p);
-% tilde_Uob_2 = blkdiag(tilde_Uob_2{:});
-
-temp_tilde_Uob_0= horzcat(Uob_0{:});
-tilde_Uob_0= sum(temp_tilde_Uob_0);
-
-tilde_Uob_1= horzcat(Uob_1{:});
-
-tilde_Uob_2 = blkdiag(Uob_2{:});
-
-tilde_Ur_0= Ur_0*N_p;
-
-tilde_Ur_1= repmat({Ur_1}, 1, N_p);
-tilde_Ur_1= horzcat(tilde_Ur_1{:});
-
-tilde_Ur_2= repmat({Ur_2}, 1, N_p);
-tilde_Ur_2 = blkdiag(tilde_Ur_2{:});
-
-tilde_C_xy= repmat({C_xy}, 1, N_p);
-tilde_C_xy= blkdiag(tilde_C_xy{:});
-end
-
-% Function to get the quadratic cost function
-function u_h = cost_func(tilde_A, tilde_B, tilde_C,tilde_A_minus, tilde_B_minus, tilde_C_xy,...
-    tilde_Ur_1, tilde_Ur_2, tilde_Uob_1, tilde_Uob_2, tilde_A_u,...
-    tilde_lambda_y, tilde_lambda_u, tilde_lambda_delta,tilde_lambda_delta_x, tilde_lambda_r,...
-    tilde_lambda_o, N_p, x_h, tilde_y_ref, tilde_u_ref, tilde_A_ineq,...
-    tilde_b_ineq, lambda_r, lambda_o, ss_d)
-
-H1 = 2 * (tilde_C * tilde_B)' * tilde_lambda_y * (tilde_C * tilde_B);
-H2 = 2 * tilde_lambda_u * eye(width(ss_d.B)*N_p);
-H3 = 2 * tilde_A_u' * tilde_lambda_delta * tilde_A_u;
-H4 = lambda_r * (tilde_C_xy * tilde_B)' * tilde_Ur_2 * (tilde_C_xy * tilde_B);
-H5 = lambda_o * (tilde_C_xy * tilde_B)' * tilde_Uob_2 * (tilde_C_xy * tilde_B);
-H6 = 2 * (tilde_B_minus)' * tilde_lambda_delta_x * (tilde_B_minus);
-
-c1 = 2 * ((tilde_C * tilde_A * x_h) - tilde_y_ref)' * tilde_lambda_y * (tilde_C * tilde_B);
-c2 = -2 * tilde_u_ref' * tilde_lambda_u;
-c3 = lambda_r * (( tilde_Ur_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Ur_2) * (tilde_C_xy * tilde_B));
-c4 = lambda_o * (( tilde_Uob_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Uob_2) * (tilde_C_xy * tilde_B));
-c5 = -2 * (tilde_A_minus*x_h)' * tilde_lambda_delta_x * tilde_B_minus;
-% H = H1 + H2 + H3 + H4 + H5;
-% c = c1 + c2 + c3 + c4;
-H = H1 + H2 + H3 + H4 + H5 + H6;
-c = c1 + c2 + c3 + c4 + c5;
-[L,p] = chol(H,'lower'); % Checking for positive definiteness of the H matrix.
-
-% AS there are no equality constraints (can add these if there are any
-% later. These were written as the solver document asks us to define them.
-A_eq= zeros(0,width(ss_d.B)*N_p);
-b_eq= zeros(0,1);
-u_h_0= zeros(width(ss_d.B)*N_p,1);
-
-iA0 = false(size(tilde_b_ineq)); % same size as the number of inequalities
-% opt = mpcActiveSetOptions;
-opt = mpcInteriorPointOptions;
-
-% [u_h, exitflag]= mpcActiveSetSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,iA0,opt);
-[u_h, exitflag]= mpcInteriorPointSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,u_h_0,opt);
-end
-
-% Function to get the quadratic cost function
-function [H, c] = cost_func1(tilde_A, tilde_B, tilde_C,tilde_A_minus, tilde_B_minus, tilde_C_xy,...
-    tilde_Ur_1, tilde_Ur_2, tilde_Uob_1, tilde_Uob_2, tilde_A_u,...
-    tilde_lambda_y, tilde_lambda_u, tilde_lambda_delta,tilde_lambda_delta_x, tilde_lambda_r,...
-    tilde_lambda_o, N_p, x_h, tilde_y_ref, tilde_u_ref, tilde_A_ineq,...
-    tilde_b_ineq, lambda_r, lambda_o, ss_d)
-
-H1 = (tilde_C * tilde_B)' * tilde_lambda_y * (tilde_C * tilde_B);
-H2 = tilde_lambda_u * eye(width(ss_d.B)*N_p);
-H3 = tilde_A_u' * tilde_lambda_delta * tilde_A_u;
-H4 = 0.5* lambda_r * (tilde_C_xy * tilde_B)' * tilde_Ur_2 * (tilde_C_xy * tilde_B);
-H5 = 0.5* lambda_o * (tilde_C_xy * tilde_B)' * tilde_Uob_2 * (tilde_C_xy * tilde_B);
-H6 = (tilde_B_minus)' * tilde_lambda_delta_x * (tilde_B_minus);
-
-c1 = 2 * ((tilde_C * tilde_A * x_h) - tilde_y_ref)' * tilde_lambda_y * (tilde_C * tilde_B);
-c2 = -2 * tilde_u_ref' * tilde_lambda_u;
-c3 = lambda_r * (( tilde_Ur_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Ur_2) * (tilde_C_xy * tilde_B));
-c4 = lambda_o * (( tilde_Uob_1 + (tilde_C_xy * tilde_A * x_h)' * tilde_Uob_2) * (tilde_C_xy * tilde_B));
-c5 = -2 * (tilde_A_minus*x_h)' * tilde_lambda_delta_x * tilde_B_minus;
-% H = H1 + H2 + H3 + H4 + H5;
-% c = c1 + c2 + c3 + c4;
-H = H1 + H2 + H3 + H4 + H5 + H6;
-c = c1 + c2 + c3 + c4 + c5;
-% [L,p] = chol(H,'lower'); % Checking for positive definiteness of the H matrix.
-% 
-% % AS there are no equality constraints (can add these if there are any
-% % later. These were written as the solver document asks us to define them.
-% A_eq= zeros(0,width(ss_d.B)*N_p);
-% b_eq= zeros(0,1);
-% u_h_0= zeros(width(ss_d.B)*N_p,1);
-% 
-% iA0 = false(size(tilde_b_ineq)); % same size as the number of inequalities
-% % opt = mpcActiveSetOptions;
-% opt = mpcInteriorPointOptions;
-% 
-% % [u_h, exitflag]= mpcActiveSetSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,iA0,opt);
-% [u_h, exitflag]= mpcInteriorPointSolver(H, c', tilde_A_ineq, tilde_b_ineq, A_eq, b_eq,u_h_0,opt);
-end
-
-% Function to get the product of the A matrices based on the inputs 
-function alpha= matprodtilde(i,j,A_temp, N_p)
-%     ans1= A_temp{1,1};
-%     ans2= vertcat(A_temp{:});
-%     [r1,c1]= size(ans1);
-%     [r2,c2]= size(ans2);
-    alpha= A_temp{j+1,1};
-    for n= j+2:1:N_p-i+1
-        alpha= alpha* A_temp{n,1};
-    end
 end
 
 %% Function to plot the location of the obstalces
@@ -3556,3 +2569,4 @@ function [A1 A2 A3]= forcontour(const_r, const_o, x_o, x_h, select, rl, distance
             a1= sum(apf_obst);
 
 end
+ 

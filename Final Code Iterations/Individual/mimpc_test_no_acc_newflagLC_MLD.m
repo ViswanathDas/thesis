@@ -41,11 +41,11 @@ u_h_0= 0;
 %% Obstacle Data
 
 % Obstacle data is of the form [ velocity lane ]'
-x_o_0= [20 1; 20 0]';
+x_o_0= [20 1; 1 0]';
 % x_o_0= [10 1]';
 
 % Distance of each obstacle from the host vehicle.
-d_0= [250 250]; % should be a row
+d_0= [230 500]; % should be a row
 % d_0= [250];
 size_veh= [2.5 1.5]; % Size of the both the host and the obstacle vehicles
 
@@ -275,14 +275,12 @@ while long_pos_host<=road_len
             % so. Therefore we first have to check which vehicles are in the
             % adjacent lane
             if isempty(x_o)==1
-                flag_ND=0; % Data given
                 flag_ND_roi=1; % No data within the ROI
                 flag_LC=0; % Do not change lane
                 n=0;
                 lane_obst= [];
                 distance1= [];
             elseif isempty(x_o)==0
-                flag_ND=0; % Data given
                 flag_ND_roi=0; % No data within the ROI
                 flag_LC=1; % Do not change lane
                 n=0;
@@ -401,7 +399,7 @@ while long_pos_host<=road_len
         if i==1
             objective= objective + [(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]'*lambda_x_MIMPC*[(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]+...
                 (u{1,i}-u_traj_MIMPC)'*lambda_u_MIMPC*(u{1,i}-u_traj_MIMPC)+...
-                (u{1,i}-u_h_0)'*lambda_delta_u_MIMPC*(u{1,i}-u_h_0)+...
+                (u{1,i}-zeros(height(u_h_0)+n,1))'*lambda_delta_u_MIMPC*(u{1,i}-zeros(height(u_h_0)+n,1))+...
                 ([v{1,i+1};l{1,i+1}]-[v{1,i};l{1,i}])'*lambda_delta_x_MIMPC*([v{1,i+1};l{1,i+1}]-[v{1,i};l{1,i}]);
         elseif i>1
             objective= objective + [(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]'*lambda_x_MIMPC*[(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]+...

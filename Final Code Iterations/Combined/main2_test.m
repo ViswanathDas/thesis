@@ -25,7 +25,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [41.6 0 4.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [40 0 4.5 0 0 0]'; % state of the host vehicle. 
 
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -38,7 +38,7 @@ u_h_0_MIMPC= [0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 2000;  % length of the road in meters
+road_len= 1000;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -66,8 +66,8 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [20 230 4.5 0 0 0;1 500 1.5 0 0 0]';  %Triple LC
-% x_o_0= [20 100 1.5 0 0 0]';
+% x_o_0= [10 230 4.5 0 0 0;0 500 1.5 0 0 0]';  %Triple LC
+x_o_0= []';
 % Obstacle Potential Field Data
 A= 1;
 b= 0.01;
@@ -551,6 +551,7 @@ while x_h(2,1)<=road_len
     u_h_MIMPC= value(u_MIMPC{1});
 %     x_h= ss_d_MIMPC.A*x_h+ss_d_MIMPC.B*u_h;
     x_h_MIMPC = [value(v{2});value(l{2})];
+    display("MIMPC");
     display(u_h_MIMPC');
     display(x_h_MIMPC');
     
@@ -592,11 +593,17 @@ while x_h(2,1)<=road_len
             U_1_o= [0 0];
             U_2_o= zeros(2,2);
         elseif flag_ND==0
-            x_o_temp= x_o1;
-            x_o_temp= ss_d_obs_APFMPC.A* x_o_temp;
-            x_o1= x_o_temp;
-            [U_0_o, U_1_o, U_2_o]= taylor2ndOrder(const_r, const_o,...
-                x_o1, x_h, 'obst', rl, distance, size_veh, x_h_MIMPC(2,1));
+            if flag_ND_roi==1
+                U_0_o= 0;
+                U_1_o= [0 0];
+                U_2_o= zeros(2,2);
+            elseif flag_ND_roi==0
+                x_o_temp= x_o1;
+                x_o_temp= ss_d_obs_APFMPC.A* x_o_temp;
+                x_o1= x_o_temp;
+                [U_0_o, U_1_o, U_2_o]= taylor2ndOrder(const_r, const_o,...
+                    x_o1, x_h, 'obst', rl, distance, size_veh, x_h_MIMPC(2,1));
+            end
         end
         [U_0_r, U_1_r, U_2_r]= taylor2ndOrder(const_r, const_o,...
             x_o, x_h, 'road', rl, distance, size_veh, x_h_MIMPC(2,1));
@@ -634,7 +641,7 @@ while x_h(2,1)<=road_len
 %     optimize(constraints,objective);
     u_h= value(u{1});
     x_h= value(x{2});
-    
+    display("APF-MPC");
     display(x_h')
     display(u_h')
     
@@ -1042,7 +1049,13 @@ psi_min= -psi_max;
 % usually given as pi/6. But
 % it is  calculated here as a function of the velocity of the vehicle, the
 % maximum acceleration and then wheelbase as
-delta_max_rad= size_veh(1,2)/v_x;
+if v_x==0
+    delta_max_rad=0;
+elseif v_x>0
+    delta_max_rad= size_veh(1,2)/v_x;
+else
+    diplay("Negative Velocity not allowed")
+end
 % delta_max_rad= ((size_veh(1,2)*a_y_max)/v_x^2);
 delta_max= (180/pi)*delta_max_rad;
 delta_min= -delta_max;
@@ -1058,7 +1071,14 @@ a_y_max= mu * g;
 a_x_max= a_y_max;
 a_x_min= -a_x_max;
 
-r_max= round(a_y_max)/v_x;
+if v_x==0
+    r_max=0;
+elseif v_x>0
+    r_max= round(a_y_max)/v_x;
+else
+    diplay("Negative Velocity not allowed")
+end
+
 r_min= -r_max;
 F_x_max= m * a_x_max;
 F_x_min= m * a_x_min;
@@ -1422,8 +1442,16 @@ end
 
 function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh)
 %%
-    dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
-    time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
+    if x_h(1,1)==0
+        dist_LC= 0;
+        time_LC= 0;
+    elseif x_h(1,1)>0
+        dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
+        time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
+    else
+        display("Velocity cannot be negative");
+    end
+
     % Check if an obstacle is on the same lane or the adjacent lanes 
     % as the host vehicle and to save the index of such obstacle
     count0= 0;
@@ -1575,61 +1603,59 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
     end
     
 
-    for i= 1:1:width(x_o)
-        if flag_delta==0
-            flag_LC=0;
-        elseif flag_delta==1
-            if x_o_front_SL(1,1)-x_h_0(1,1)<= 0
-                if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
-                    % infront of or behind the HV in the adjacent lane.
-                    flag_LC=1;
-                elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
-                    % infront of the HV in the adjacent lane but not behind the
-                    % vehicle.
-                    if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max+5*size_veh(1,1)-...
-                        (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
-                        % Here I have to add another check which checks if the
-                        % vehicle can slow down without crossing the boundary, If
-                        % not then flag_LC==1 rather than flag_LC==0 
-                        if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0 &&...
-                                (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
-                                x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
-                            flag_LC=1;
-                        else
-                            flag_LC=0;
-                        end
-                    else
-                        flag_LC=1;
-                    end
-                elseif flag_epsilon1==0 && flag_epsilon2==1
-                    if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
-                        (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
-
+    if flag_delta==0
+        flag_LC=0;
+    elseif flag_delta==1
+        if x_o_front_SL(1,1)-x_h_0(1,1)<= 0
+            if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
+                % infront of or behind the HV in the adjacent lane.
+                flag_LC=1;
+            elseif flag_epsilon1==1 && flag_epsilon2==0 % There are vehicles
+                % infront of the HV in the adjacent lane but not behind the
+                % vehicle.
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max+5*size_veh(1,1)-...
+                    (x_h(1,1)-x_o_front_AL(1,1))*time_LC 
+                    % Here I have to add another check which checks if the
+                    % vehicle can slow down without crossing the boundary, If
+                    % not then flag_LC==1 rather than flag_LC==0 
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0 &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
                         flag_LC=1;
                     else
                         flag_LC=0;
                     end
-                elseif flag_epsilon1==1 && flag_epsilon2==1
-                    if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max+5*size_veh(1,1)-...
-                        (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
-                       x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
-                       (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
-                        if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0  &&...
-                                (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
-                                x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
-                            flag_LC=1;
-                        else
-                            flag_LC=0;
-                        end
-                    else
-                        flag_LC=1; 
-                    end
+                else
+                    flag_LC=1;
                 end
-            else
-                flag_LC=0;
+            elseif flag_epsilon1==0 && flag_epsilon2==1
+                if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                    (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+
+                    flag_LC=1;
+                else
+                    flag_LC=0;
+                end
+            elseif flag_epsilon1==1 && flag_epsilon2==1
+                if x_o_front_AL(2,1)-x_h(2,1)<= d_safe_max+5*size_veh(1,1)-...
+                    (x_h(1,1)-x_o_front_AL(1,1))*time_LC  &&...
+                   x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
+                   (x_h(1,1)-x_o_rear_AL(1,1))*time_LC
+                    if x_o_front_AL(1,1)-x_o_front_SL(1,1)>0  &&...
+                            (x_o_front_SL(1,1)-x_h(1,1))/a_x_max<= x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1) &&...
+                            x_o_front_SL(2,1)-x_h(2,1)-distance(index41,1)<x_o_front_AL(2,1)-x_h(2,1)-distance(index42,1)
+                        flag_LC=1;
+                    else
+                        flag_LC=0;
+                    end
+                else
+                    flag_LC=1; 
+                end
             end
-        end 
-    end
+        else
+            flag_LC=0;
+        end
+    end 
 end
 
 % Function which generates the matrices to be used in the quadratic cost
@@ -1652,17 +1678,18 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
     y= x_h(3,1);
     
     opt_l= l_ref; 
-    % Given the vertices of the obstacle, we can find then distance from a
-    % point to all the vertices and all the boundaries, and find the minimum of
-    % these values. 
-    [bound_OV]= rect_p(size_veh, x_o, rl);
-    [tria_v]= trian(bound_OV, distance, x_o);
-    [v_alp1 v_alp2]= vertex(bound_OV, tria_v);
-    [si_form]= equations(v_alp1, v_alp2, x_o);
     
     switch select   
         case 'obst'
 %% Obstacle Potential             
+            % Given the vertices of the obstacle, we can find then distance from a
+            % point to all the vertices and all the boundaries, and find the minimum of
+            % these values. 
+            [bound_OV]= rect_p(size_veh, x_o, rl);
+            [tria_v]= trian(bound_OV, distance, x_o);
+            [v_alp1 v_alp2]= vertex(bound_OV, tria_v);
+            [si_form]= equations(v_alp1, v_alp2, x_o);
+            
             % write the derivative for the obstacle potential for x, y, xx,
             % xy, yx, and yy. Substitute the actual values and then get the
             % values of A1, A2, and A3

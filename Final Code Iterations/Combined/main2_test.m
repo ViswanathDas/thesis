@@ -25,7 +25,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [40 0 1.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [41.6 0 1.5 0 0 0]'; % state of the host vehicle. 
     
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -38,7 +38,7 @@ u_h_0_MIMPC= [0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1000;  % length of the road in meters
+road_len= 1500;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -66,9 +66,10 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [10 230 4.5 0 0 0;10 800 1.5 0 0 0]';  %Triple LC
-% x_o_0= []';
+x_o_0= [10 300 4.5 0 0 0;10 500 1.5 0 0 0]';  %T-D Slowdown + LC 
+% x_o_0= [10 350 4.5 0 0 0;20 550 1.5 0 0 0]';  %Triple LC 
 % x_o_0= [10 230 1.5 0 0 0;]';
+% x_o_0= []';
 % Obstacle Potential Field Data
 A= 1;
 b= 0.01;
@@ -107,7 +108,7 @@ lambda_u_MIMPC= 0;
 
 lambda_delta_x_MIMPC= [0 0; 0 0];
 
-lambda_delta_u_MIMPC_0= 2.5;
+lambda_delta_u_MIMPC_0= 10;
 
 % Weights for the Objective Function for APF-MPC
 
@@ -119,20 +120,20 @@ lambda_y_APFMPC= [  50 0 0 0 0;
                     0 0 0 0 1;];
 
 % for u= [F_x delta]^T
-lambda_u_APFMPC= [  0        0;
-                    0        1;];
+lambda_u_APFMPC= [  100        0;
+                    0        100;];
                 
 lambda_delta_u_APFMPC= [    100   0;
-                            0   	10000;];
+                            0   	100000;];
 
-lambda_delta_x_APFMPC= [    10 0 0 0 0 0;
+lambda_delta_x_APFMPC= [    0 0 0 0 0 0;
                             0 0 0 0 0 0;
                             0 0 0 0 0 0;
-                            0 0 0 10 0 0;
+                            0 0 0 0 0 0;
                             0 0 0 0 0 0;
                             0 0 0 0 0 0;];
-lambda_o_APFMPC= 0.1;
-lambda_r_APFMPC= 1;
+lambda_o_APFMPC= 0.5;
+lambda_r_APFMPC= 10;
 
 %% Data for the Optimal Control Problem
 
@@ -259,7 +260,7 @@ while x_h(2,1)<=road_len
                 distance1= [];
             elseif isempty(x_o)==0
                 flag_ND_roi=0;
-                flag_LC= 1;
+                flag_LC= 0;
                 n=0;
                 lane_obst= [];
                 distance1= [];
@@ -312,7 +313,7 @@ while x_h(2,1)<=road_len
     % Model of the Host Vehicle for MIMPC
     ss_d_MIMPC= car_modelMIMPC(T, x_o, flag_LC, flag_ND, flag_ND_roi);
     % Model of the host vehicle for APF-MPC
-    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h);
+    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h_0);
     
     %% Obstacle Model
     % Obstacle model for the MIMPC task
@@ -332,7 +333,7 @@ while x_h(2,1)<=road_len
     % road_len, const_r, T, N_p, lambda_x_MIMPC, lambda_u_MIMPC
     % lambda_delta_x_MIMPC, lambda_delta_u_MIMPC_0, t1, count, d_roi
     % v_x_max, a_x_max, d_safe
-%     u_h_init= [u_h(1,1);zeros(n,1)]; 
+    u_h_init= [u_h(1,1);zeros(n,1)]; 
     
     yalmip('clear');
 %     d= d_o;
@@ -384,7 +385,7 @@ while x_h(2,1)<=road_len
         if i==1
             objective= objective + [(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]'*lambda_x_MIMPC*[(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]+...
                 (u_MIMPC{1,i}-u_traj_MIMPC)'*lambda_u_MIMPC*(u_MIMPC{1,i}-u_traj_MIMPC)+...
-                (u_MIMPC{1,i}-zeros(height(u_h_0_MIMPC)+n,1))'*lambda_delta_u_MIMPC*(u_MIMPC{1,i}-zeros(height(u_h_0_MIMPC)+n,1))+...
+                (u_MIMPC{1,i}-u_h_init)'*lambda_delta_u_MIMPC*(u_MIMPC{1,i}-u_h_init)+...
                 ([v{1,i+1};l{1,i+1}]-[v{1,i};l{1,i}])'*lambda_delta_x_MIMPC*([v{1,i+1};l{1,i+1}]-[v{1,i};l{1,i}]);
         elseif i>1
             objective= objective + [(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]'*lambda_x_MIMPC*[(v{1,i+1}-x_traj_MIMPC(1,1));(l{1,i+1}-x_traj_MIMPC(2,1))]+...
@@ -525,7 +526,7 @@ while x_h(2,1)<=road_len
                         constraints= [constraints, m_dj*u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1)<=u_MIMPC{1,i}(1+(j-1)*n_MLD_var+6,1)<=M_dj*u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1),...
                             -M_dj*(1-u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1))<=u_MIMPC{1,i}(1+(j-1)*n_MLD_var+6,1)- d{1,i}(j,1)<=-m_dj*(1-u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1))]; %gamma_3 = gamma1 d
 
-                        constraints= [constraints, u_MIMPC{1,i}(1+(j-1)*n_MLD_var+6,1)-u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1)*distance1(j,1)>=0];
+                        constraints= [constraints, u_MIMPC{1,i}(1+(j-1)*n_MLD_var+6,1)-u_MIMPC{1,i}(1+(j-1)*n_MLD_var+5,1)*(distance1(j,1))>=0];
                     end
                 end
                 % Evolution of the obstacle vehicle data
@@ -613,7 +614,7 @@ while x_h(2,1)<=road_len
         if i==1
         objective= objective + (ss_d_APFMPC.C*x{1,i+1}-y_traj_APFMPC)'*lambda_y_APFMPC*(ss_d_APFMPC.C*x{1,i+1}-y_traj_APFMPC) +...
             (u{1,i}-u_traj_APFMPC)'*lambda_u_APFMPC*(u{1,i}-u_traj_APFMPC) +...
-            (u{1,i})'*lambda_delta_u_APFMPC* (u{1,i}) + (x{1,i+1}-x{1,i})'*lambda_delta_x_APFMPC* (x{1,i+1}-x{1,i}) + ...
+            (u{1,i}-u_h)'*lambda_delta_u_APFMPC* (u{1,i}-u_h) + (x{1,i+1}-x{1,i})'*lambda_delta_x_APFMPC* (x{1,i+1}-x{1,i}) + ...
             lambda_r_APFMPC* (U_0_r + U_1_r * C_xy * x{1,i+1} + 0.5 * (C_xy * x{1,i+1})' * U_2_r * (C_xy * x{1,i+1})) +...
             lambda_o_APFMPC* (U_0_o + U_1_o * C_xy * x{1,i+1} + 0.5 * (C_xy * x{1,i+1})' * U_2_o * (C_xy * x{1,i+1}));
         else
@@ -657,8 +658,28 @@ while x_h(2,1)<=road_len
     long_pos_host= long_pos_host + value(v{1})*T;
 %     x_h= [x_h_MIMPC(1,1) long_pos_host lat_pos_host 0 0 0]';
 %     u_h= [u_h_MIMPC(1,1) 0]';
-    
-    
+    if count>=150
+%         x_o_copy(1,1)=0;
+        if x_o_copy(1,2)>=0
+            x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
+        end
+        if x_o_copy(1,2)<=0
+            x_o_copy(1,2)=0;
+        end
+    end
+%     if count>=500
+%         if x_o_copy(1,1)>=0
+%             x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max);
+%         end
+%         if x_o_copy(1,1)<=0
+%             x_o_copy(1,1)=0;
+%         end        
+%     end
+
+    if count>=450
+            x_o_copy(3,1)= 1.5;     
+    end
+
     % Calculate the longitudinal and lateral position of the host vehicle
     % along with the evolution of the host vehicle velocity, lane. The
     % evolution of the distance function is also noted. Same for both
@@ -674,6 +695,18 @@ while x_h(2,1)<=road_len
         x_OV_list= [];
         y_OV_list= [];
     elseif flag_ND==0
+%         if count<=200
+%             x_o_copy= ss_d_obs_APFMPC.A* x_o_copy;
+%         elseif count>200
+%             if x_o_copy(1,1)>=0
+%             testB= [0 0 0 0 0 0; T 0 0 0 0 0]';
+%             x_o_copy= ss_d_obs_APFMPC.A* x_o_copy + testB*[+a_x_max 0; 0 0];
+%             end
+%             if x_o_copy(1,1)>=20
+%                 x_o_copy(1,1)=20;
+%                 x_o_copy= ss_d_Robs_APFMPC.A* x_o_copy;
+%             end
+%         end
         x_o_copy= ss_d_obs_APFMPC.A* x_o_copy;
         X_obs_list{1,count}= x_o_copy;
         for i= 1:1:n_lanes
@@ -751,15 +784,15 @@ while x_h(2,1)<=road_len
     % at the initial step the current value is the optimal state of the host
     % vehicle. 
     
-%     if count>=160
-%         display(count);
-%     end
+    if count>=362
+        display(count);
+    end
     % x and y position of the host vehicle.
     name= ['Fig' num2str(count)];
-%     if count>=160
-    R= rem(count,5);
-%     else
-%         R=01;
+%     if count>363
+%         R= rem(count,1);
+%     elseif count<=363
+        R= rem(count,5);
 %     end
     if (R==0)
         f= figure('Name',name, 'Position', get(0, 'Screensize'));
@@ -835,7 +868,7 @@ while x_h(2,1)<=road_len
         title('Acceleration of the Host Vehicle')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
-        ylim([b_u_ineq_APFMPC(2,1) b_u_ineq_APFMPC(1,1)])
+%         ylim([b_u_ineq_APFMPC(2,1) b_u_ineq_APFMPC(1,1)])
 %         ytickformat('%.4f')
         subplot(7,1,5)
         hold on;
@@ -870,9 +903,9 @@ while x_h(2,1)<=road_len
         title('Steering Angle')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
-        ylim([b_u_ineq_APFMPC(4,1) b_u_ineq_APFMPC(3,1)])
+%         ylim([b_u_ineq_APFMPC(4,1) b_u_ineq_APFMPC(3,1)])
 %         ytickformat('%.4f')
-        sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking')
+        sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change + Braking + OV Lane Change)')
         page_name_png=['Fig' num2str(count) '.png'];
         % Requires R2020a or later
         exportgraphics(f,page_name_png,'Resolution',300)
@@ -888,10 +921,10 @@ while x_h(2,1)<=road_len
 %     % at the initial step the current value is the optimal state of the host
 %     % vehicle. 
 %     
-% %     if count==442
-% %         display(count);
-% %     end
-%     % x and y position of the host vehicle.
+%     if count==442
+%         display(count);
+%     end
+    % x and y position of the host vehicle.
 %     name= ['Fig' num2str(count)];
 %     R= rem(count,5);
 %     if (R==0)
@@ -968,7 +1001,7 @@ while x_h(2,1)<=road_len
 %         title('Acceleration of the Host Vehicle')
 %         legend('Location', 'northeastoutside')
 %         xlim([0 road_len]);
-%         ylim([b_u_ineq_APFMPC(2,1) b_u_ineq_APFMPC(1,1)])
+% %         ylim([b_u_ineq_APFMPC(2,1) b_u_ineq_APFMPC(1,1)])
 % %         ytickformat('%.4f')
 %         subplot(6,1,5)
 %         hold on;
@@ -991,13 +1024,14 @@ while x_h(2,1)<=road_len
 %         title('Steering Angle')
 %         legend('Location', 'northeastoutside')
 %         xlim([0 road_len]);
-%         ylim([b_u_ineq_APFMPC(4,1) b_u_ineq_APFMPC(3,1)])
+% %         ylim([b_u_ineq_APFMPC(4,1) b_u_ineq_APFMPC(3,1)])
 % %         ytickformat('%.4f')
-%         sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking')
+%         sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking (No Vehicles on Road)')
 %         page_name_png=['Fig' num2str(count) '.png'];
 %         % Requires R2020a or later
 %         exportgraphics(f,page_name_png,'Resolution',300)
 %     end
+
 end
 X_list= horzcat(X_list{:});
 u_h_list= horzcat(u_h_list{:});
@@ -1510,7 +1544,7 @@ function [flag_delta, x_traj_MIMPC, u_traj_MIMPC, y_traj_APFMPC, u_traj_APFMPC, 
                 elseif flag_LC==1 % Implies that there is no vehicle in the adjacent
                     % lane in the safety region and lane change is possible
                     vx_ref= x_h_0(1,1);
-                    if x_o_front_SL(2,1)- x_h(2,1)<=distance(index41)+10*size_veh(1,1)
+                    if x_o_front_SL(2,1)- x_h(2,1)<=distance(index41)+15*size_veh(1,1)
                         if lane_host==1
                             l_ref=0;
                         elseif lane_host==0
@@ -1762,7 +1796,7 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
     if flag_delta==0
         flag_LC=0;
     elseif flag_delta==1
-        if x_o_front_SL(1,1)-x_h_0(1,1)<= 0
+        if x_o_front_SL(1,1)-x_h_0(1,1)<= 0.01
             if flag_epsilon1==0 && flag_epsilon2==0 % There are no vehicles
                 % infront of or behind the HV in the adjacent lane.
                 flag_LC=1;
@@ -1782,7 +1816,7 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
                         flag_LC=0;
                     end
                 else
-                    flag_LC=1;
+                    flag_LC=0;
                 end
             elseif flag_epsilon1==0 && flag_epsilon2==1
                 if x_h(2,1)-x_o_rear_AL(2,1)>=  d_safe_max + ...
@@ -1805,7 +1839,7 @@ function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_l
                         flag_LC=0;
                     end
                 else
-                    flag_LC=1; 
+                    flag_LC=0; 
                 end
             end
         else

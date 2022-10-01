@@ -25,7 +25,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [41.6 0 1.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [35 0 4.5 0 0 0]'; % state of the host vehicle. 
     
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -38,7 +38,7 @@ u_h_0_MIMPC= [0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1500;  % length of the road in meters
+road_len= 1000;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -66,9 +66,9 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
 
 % States of the Obstacle
-x_o_0= [10 300 4.5 0 0 0;10 500 1.5 0 0 0]';  %T-D Slowdown + LC 
+% x_o_0= [10 300 4.5 0 0 0;20 300 1.5 0 0 0]';  %T-D Slowdown + LC 
 % x_o_0= [10 350 4.5 0 0 0;20 550 1.5 0 0 0]';  %Triple LC 
-% x_o_0= [10 230 1.5 0 0 0;]';
+x_o_0= [10 400 4.5 0 0 0;]';
 % x_o_0= []';
 % Obstacle Potential Field Data
 A= 1;
@@ -658,15 +658,15 @@ while x_h(2,1)<=road_len
     long_pos_host= long_pos_host + value(v{1})*T;
 %     x_h= [x_h_MIMPC(1,1) long_pos_host lat_pos_host 0 0 0]';
 %     u_h= [u_h_MIMPC(1,1) 0]';
-    if count>=150
-%         x_o_copy(1,1)=0;
-        if x_o_copy(1,2)>=0
-            x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
-        end
-        if x_o_copy(1,2)<=0
-            x_o_copy(1,2)=0;
-        end
-    end
+%     if count>=150
+% %         x_o_copy(1,1)=0;
+%         if x_o_copy(1,2)>=0
+%             x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
+%         end
+%         if x_o_copy(1,2)<=0
+%             x_o_copy(1,2)=0;
+%         end
+%     end
 %     if count>=500
 %         if x_o_copy(1,1)>=0
 %             x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max);
@@ -675,10 +675,10 @@ while x_h(2,1)<=road_len
 %             x_o_copy(1,1)=0;
 %         end        
 %     end
-
-    if count>=450
-            x_o_copy(3,1)= 1.5;     
-    end
+% 
+%     if count>=520
+%             x_o_copy(3,1)= 1.5;     
+%     end
 
     % Calculate the longitudinal and lateral position of the host vehicle
     % along with the evolution of the host vehicle velocity, lane. The
@@ -905,7 +905,7 @@ while x_h(2,1)<=road_len
         xlim([0 road_len]);
 %         ylim([b_u_ineq_APFMPC(4,1) b_u_ineq_APFMPC(3,1)])
 %         ytickformat('%.4f')
-        sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change + Braking + OV Lane Change)')
+        sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking (Change from Lane 1 to Lane 0)')
         page_name_png=['Fig' num2str(count) '.png'];
         % Requires R2020a or later
         exportgraphics(f,page_name_png,'Resolution',300)

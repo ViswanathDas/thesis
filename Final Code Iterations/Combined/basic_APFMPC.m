@@ -273,10 +273,10 @@ while x_h(2,1)<=road_len
             x_o_temp= ss_d_obs_APFMPC.A* x_o_temp;
             x_o1= x_o_temp;
             [U_0_o, U_1_o, U_2_o]= taylor2ndOrder(const_r, const_o,...
-                x_o1, x_h, 'obst', rl, distance, size_veh, l_ref);
+                x_o1, x_h, 'obst', rl, distance, size_veh);
         end
         [U_0_r, U_1_r, U_2_r]= taylor2ndOrder(const_r, const_o,...
-            x_o, x_h, 'road', rl, distance, size_veh, l_ref);
+            x_o, x_h, 'road', rl, distance, size_veh);
         
         %% Cost Function
         if i==1
@@ -1188,7 +1188,7 @@ end
 
 % Function which generates the matrices to be used in the quadratic cost
 % function which represent the taylor series approximation of the APF.
-function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh, l_ref)
+function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh)
     A= const_o(1,1);
     b= const_o(1,2);
     eta= const_r(1,1);
@@ -1204,8 +1204,7 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
     
     x= x_h(2,1);
     y= x_h(3,1);
-    
-    opt_l= l_ref; 
+     
     % Given the vertices of the obstacle, we can find then distance from a
     % point to all the vertices and all the boundaries, and find the minimum of
     % these values. 
@@ -1253,7 +1252,7 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
             % write the derivative for the obstacle potential for x, y, xx,
             % xy, yx, and yy. Substitute the actual values and then get the
             % values of A1, A2, and A3
-%             for i = 1:length(loc_road_bound)
+            for i = 1:length(loc_road_bound)
 %                 apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^2;
 %                 obst_ur_x(i) = 0;
 %                 obst_ur_y(i) = -eta/((y- loc_road_bound(i))^3);
@@ -1261,40 +1260,21 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
 %                 obst_ur_xy(i) = 0;
 %                 obst_ur_yx(i) = 0;
 %                 obst_ur_yy(i) = (3*eta)/((y-loc_road_bound(i))^4);
-%                 apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^4;
-%                 obst_ur_x(i) = 0;
-%                 obst_ur_y(i) = -(2*eta)/((y- loc_road_bound(i))^5);
-%                 obst_ur_xx(i) = 0;
-%                 obst_ur_xy(i) = 0;
-%                 obst_ur_yx(i) = 0;
-%                 obst_ur_yy(i) = (10*eta)/((y-loc_road_bound(i))^6);
-            if l_ref==0
-                opt_y=1.5;
-                apf_road= 0.5*eta*((1/(y- loc_road_bound(1)))^2+(1/(y- loc_road_bound(2)))^2)+b_skew*(exp(a_skew*(y-opt_y))-a_skew*(y-opt_y)-1);
-                obst_ur_x = 0;
-                obst_ur_y = -(eta/2)*((2/(y- loc_road_bound(1)))^3+(2/(y- loc_road_bound(2)))^3)+b_skew*(a_skew*exp(a_skew*(y-opt_y))-a_skew);
-                obst_ur_xx = 0;
-                obst_ur_xy = 0;
-                obst_ur_yx = 0;
-                obst_ur_yy = (eta/2)*((6/(y- loc_road_bound(1)))^4+(6/(y- loc_road_bound(2)))^4)+b_skew*(a_skew^2*exp(a_skew*(y-opt_y)));
-            elseif l_ref==1
-                opt_y=4.5;
-                apf_road= 0.5*eta*((1/(y- loc_road_bound(1)))^2+(1/(y- loc_road_bound(2)))^2)+b_skew*(exp(-a_skew*(y-opt_y))+a_skew*(y-opt_y)-1);
-                obst_ur_x = 0;
-                obst_ur_y = -(eta/2)*((2/(y- loc_road_bound(1)))^3+(2/(y- loc_road_bound(2)))^3)+b_skew*(-a_skew*exp(-a_skew*(y-opt_y))+a_skew);
-                obst_ur_xx = 0;
-                obst_ur_xy = 0;
-                obst_ur_yx = 0;
-                obst_ur_yy = (eta/2)*((6/(y- loc_road_bound(1)))^4+(6/(y- loc_road_bound(2)))^4)+b_skew*(a_skew^2*exp(-a_skew*(y-opt_y)));   
+                apf_road(i)= 0.5* eta * (1/(y- loc_road_bound(i)))^4;
+                obst_ur_x(i) = 0;
+                obst_ur_y(i) = -(2*eta)/((y- loc_road_bound(i))^5);
+                obst_ur_xx(i) = 0;
+                obst_ur_xy(i) = 0;
+                obst_ur_yx(i) = 0;
+                obst_ur_yy(i) = (10*eta)/((y-loc_road_bound(i))^6);
             end
-%             end
-            a1= apf_road;
-            a2= obst_ur_x;
-            a3= obst_ur_y;
-            a4= obst_ur_xx;
-            a5= obst_ur_xy;
-            a6= obst_ur_yx;
-            a7= obst_ur_yy;
+            a1= sum(apf_road);
+            a2= sum(obst_ur_x);
+            a3= sum(obst_ur_y);
+            a4= sum(obst_ur_xx);
+            a5= sum(obst_ur_xy);
+            a6= sum(obst_ur_yx);
+            a7= sum(obst_ur_yy);
             A1= a1 - a2*x - a3*y + 0.5*a4*x^2 + a5*x*y + 0.5*a7*y^2;
 
             A2= [ a2 - a4*x - a5*y; 

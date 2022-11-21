@@ -312,7 +312,7 @@ ylim([0 6]);
 figure(12)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 % [x_vert_plot y_vert_plot]= rect_plot(bound_OV, tria_v);
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
@@ -461,7 +461,7 @@ ylim([0 6]);
 figure(22)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -608,7 +608,7 @@ ylim([0 6]);
 figure(32)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -755,7 +755,7 @@ ylim([0 6]);
 figure(42)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -899,7 +899,7 @@ legend;
 figure(52)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -994,6 +994,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active Region when the HV is in Region 6')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 hold off;
 apf_obst2= zeros(1,0);
 for j= 1:length(Y_var)
@@ -1035,11 +1037,13 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 6')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 6')
 figure(62)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -1047,6 +1051,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 6')
 legend
+xlim([220 245]);
+ylim([0 6]);
 toc
 
 %% For region 7
@@ -1134,6 +1140,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active Region when the HV is in Region 7')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 hold off;
 apf_obst2= zeros(1,0);
 for j= 1:length(Y_var)
@@ -1175,11 +1183,13 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 7')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 7')
 figure(72)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -1187,6 +1197,8 @@ xlabel('Longitudinal Distan=ce')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 7')
 legend
+xlim([220 245]);
+ylim([0 6]);
 toc
 
 %% For region 8
@@ -1274,6 +1286,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active Region when the HV is in Region 8')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 hold off;
 apf_obst2= zeros(1,0);
 for j= 1:length(Y_var)
@@ -1315,11 +1329,13 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 8')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 8')
 figure(82)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -1327,6 +1343,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 8')
 legend
+xlim([220 245]);
+ylim([0 6]);
 toc
 
 %% For region 9
@@ -1414,6 +1432,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active Region when the HV is in Region 9')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 hold off;
 apf_obst2= zeros(1,0);
 for j= 1:length(Y_var)
@@ -1455,11 +1475,13 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 9')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 9')
 figure(92)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -1467,6 +1489,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 9')
 legend
+xlim([220 245]);
+ylim([0 6]);
 toc
 
 %% For region 10
@@ -1554,6 +1578,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active Region when the HV is in Region 10')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 hold off;
 apf_obst2= zeros(1,0);
 for j= 1:length(Y_var)
@@ -1595,11 +1621,13 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 10')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 10')
 figure(102)
 view(3)
 hold on;
-c= contour(X_var,Y_var,apf_obst2,100, 'DisplayName', 'Contour');
+c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
 surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
 hold off;
 shading interp;
@@ -1607,6 +1635,8 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 10')
 legend
+xlim([220 245]);
+ylim([0 6]);
 toc
 
 %% Functions
@@ -2376,16 +2406,16 @@ function surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha)
             text(vertices1(5,1), vertices2(5,1)-1, alpha, 'L_6', 'Color', 'r');
             
             plot3([vertices1(3,1) vertices1(3,1)-1], [vertices2(3,1) m(7,1)*(vertices1(3,1)-1)+b(7,1)], [alpha alpha], 'Color', 'r','DisplayName', 'L7','HandleVisibility','off'); %L7
-            text(vertices1(3,1)-0.35,m(7,1)*(vertices1(3,1)-0.35)+b(7,1), alpha, 'L_7', 'Color', 'r');
+            text(vertices1(3,1)-0.25,m(7,1)*(vertices1(3,1)-0.25)+b(7,1), alpha, 'L_7', 'Color', 'r');
             
             plot3([vertices1(4,1) vertices1(4,1)-1], [vertices2(4,1) m(8,1)*(vertices1(4,1)-1)+b(8,1)], [alpha alpha], 'Color', 'r','DisplayName', 'L8','HandleVisibility','off'); %L8
-            text(vertices1(4,1)-0.5, m(8,1)*(vertices1(4,1)-0.5)+b(8,1), alpha, 'L_8', 'Color', 'r');
+            text(vertices1(4,1)-0.40, m(8,1)*(vertices1(4,1)-0.40)+b(8,1), alpha, 'L_8', 'Color', 'r');
             
             plot3([vertices1(4,1) vertices1(4,1)-1], [vertices2(4,1) m(9,1)*(vertices1(4,1)-1)+b(9,1)], [alpha alpha], 'Color', 'r','DisplayName', 'L9','HandleVisibility','off'); %L9
-            text(vertices1(4,1)-0.5, m(9,1)*(vertices1(4,1)-0.5)+b(9,1), alpha, 'L_9', 'Color', 'r');
+            text(vertices1(4,1)-0.40, m(9,1)*(vertices1(4,1)-0.40)+b(9,1), alpha, 'L_9', 'Color', 'r');
             
             plot3([vertices1(5,1) vertices1(5,1)-1], [vertices2(5,1) m(10,1)*(vertices1(5,1)-1)+b(10,1)], [alpha alpha], 'Color','r','DisplayName', 'L10','HandleVisibility','off'); %L10
-            text(vertices1(5,1)-0.35, m(10,1)*(vertices1(5,1)-0.35)+b(10,1), alpha, 'L_{10}', 'Color', 'r');
+            text(vertices1(5,1)-0.25, m(10,1)*(vertices1(5,1)-0.25)+b(10,1), alpha, 'L_{10}', 'Color', 'r');
             
         elseif x_o_0(6,i)<0
             plot3([vertices1(2,1) vertices1(2,1)+0.01], [vertices2(2,1) m(1,1)*(vertices1(2,1)+0.01)+b(1,1)], [alpha alpha], 'Color', 'r','DisplayName', 'L1'); %L1

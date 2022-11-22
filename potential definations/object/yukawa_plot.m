@@ -36,11 +36,11 @@ u_h2= [0 0]';
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
 road_len= 1000;  % length of the road in meters
-
+% digits(5)
 data_count=3000;
 alpha= 1000;
 Y_var= linspace(0, 6, data_count);
-X_var= linspace(225, 245, data_count);
+X_var= linspace(220, 245, data_count);
 for i= 1:n_lanes-1
     loc_lane_bound(i) = i*size_lane; % Y location of the lane internal
     % boundaries (does not include the outer boundaries of the road)
@@ -122,7 +122,6 @@ m= temp(:,1);
 b= temp(:,2);
 v1= v_alp1{:,1};
 alpha= 1000;
-
 %%
 % Y_var= linspace(0, 6, data_count);
 % X_var= linspace(220, 238, data_count);
@@ -163,13 +162,7 @@ alpha= 1000;
 % s=surf(X_var,Y_var,apf_obst1);
 % % contour(X_var,Y_var,apf_obst1, 10000);
 % % hold off;
-% shading interp;
 % hold on
-% % spacing = 40;  % play around so it fits the size of your data set
-% % for i = 1 : spacing : length(XX(:,1))
-% %     plot3(XX(:,i), YY(:,i), ZZ(:,i),'-k');
-% %     plot3(XX(:,i), YY(:,i), ZZ(:,i),'-k');
-% % end
 % xlabel('Horizontal Distance')
 % ylabel('Vertical Distance')
 % zlabel('Cost of the Potential Function')
@@ -177,595 +170,595 @@ alpha= 1000;
 % % legend
 % toc(time2)
 
-%% For region 1
-x_h_0= [0 238 3 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-tic
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(1)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 1')
-plot(X_vartempout, Y_vartempout,'b*', 'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 1')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(1,i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(1,i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(11)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 1');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 1')
-legend;
-% legend(s, 'Potential For Region 1')
-xlim([220 245]);
-ylim([0 6]);
-figure(12)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-% [x_vert_plot y_vert_plot]= rect_plot(bound_OV, tria_v);
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 1 ')
-legend;
-% legend(c, 'Contour of potential when HV lies in Region 1')
-xlim([220 245]);
-ylim([0 6]);
-toc
-
-%% For Region 2
-x_h_0= [0 238 6 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-tic
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(2)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 2')
-plot(X_vartempout, Y_vartempout, 'b*', 'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 2')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(1,i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(1,i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(21)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 2');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 2')
-legend;
-% legend(s, 'Potential For Region 2')
-xlim([220 245]);
-ylim([0 6]);
-figure(22)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 2')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
-
-%% For region 3
-x_h_0= [0 235 6 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-tic
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(3)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 3')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 3')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(1,i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(1,i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(31)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 3');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 3')
-legend;
-% legend(s, 'Potential For Region 3')
-xlim([220 245]);
-ylim([0 6]);
-figure(32)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 3')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
-
-%% For region 4
-x_h_0= [0 233.49 6 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-tic
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(4)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 4')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 4')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(1,i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(1,i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(41)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 4');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 4')
-legend;
-% legend(s, 'Potential For Region 4')
-xlim([220 245]);
-ylim([0 6]);
-figure(42)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 4')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
+% %% For region 1
+% x_h_0= [0 238 3 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% tic
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(1)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 1')
+% plot(X_vartempout, Y_vartempout,'b*', 'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 1')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(1,i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(1,i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(11)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 1');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 1')
+% legend;
+% % legend(s, 'Potential For Region 1')
+% xlim([220 245]);
+% ylim([0 6]);
+% figure(12)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% % [x_vert_plot y_vert_plot]= rect_plot(bound_OV, tria_v);
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 1 ')
+% legend;
+% % legend(c, 'Contour of potential when HV lies in Region 1')
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
+% 
+% %% For Region 2
+% x_h_0= [0 238 6 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% tic
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(2)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 2')
+% plot(X_vartempout, Y_vartempout, 'b*', 'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 2')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(1,i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(1,i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(21)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 2');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 2')
+% legend;
+% % legend(s, 'Potential For Region 2')
+% xlim([220 245]);
+% ylim([0 6]);
+% figure(22)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 2')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
+% 
+% %% For region 3
+% x_h_0= [0 235 6 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% tic
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(3)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 3')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 3')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(1,i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(1,i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(31)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 3');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 3')
+% legend;
+% % legend(s, 'Potential For Region 3')
+% xlim([220 245]);
+% ylim([0 6]);
+% figure(32)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 3')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
+% 
+% %% For region 4
+% x_h_0= [0 233.49 6 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% tic
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(4)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 4')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 4')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(1,i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(1,i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(1,i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(1,i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(41)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 4');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 4')
+% legend;
+% % legend(s, 'Potential For Region 4')
+% xlim([220 245]);
+% ylim([0 6]);
+% figure(42)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 4')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
 
 %% For region 5
 x_h_0= [0 229.5 6 0 0 0]';
@@ -895,6 +888,8 @@ ylabel('Lateral Distance')
 zlabel('Cost of the Potential Function')
 title('Active APF (surface) when the HV is in Region 5')
 legend;
+xlim([220 245]);
+ylim([0 6]);
 % legend(s, 'Potential For Region 5')
 figure(52)
 view(3)
@@ -907,299 +902,301 @@ xlabel('Longitudinal Distance')
 ylabel('Lateral Distance')
 title('Active APF (contour) when the HV is in Region 5')
 legend
-toc
+xlim([220 245]);
+ylim([0 6]);
+% toc
 
-%% For region 6
-x_h_0= [0 228.49 3 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(6)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 6')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 6')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(61)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 6');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 6')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-% legend(s, 'Potential For Region 6')
-figure(62)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 6')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
-
-%% For region 7
-x_h_0= [0 229.5 0 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(7)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 7')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 7')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(71)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 7');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 7')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-% legend(s, 'Potential For Region 7')
-figure(72)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distan=ce')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 7')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
+% %% For region 6
+% x_h_0= [0 228.49 3 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(6)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 6')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 6')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(61)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 6');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 6')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% % legend(s, 'Potential For Region 6')
+% figure(62)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 6')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
+% 
+% %% For region 7
+% x_h_0= [0 229.5 0 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(7)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 7')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 7')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(71)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 7');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 7')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% % legend(s, 'Potential For Region 7')
+% figure(72)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distan=ce')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 7')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
 
 %% For region 8
 x_h_0= [0 233.49 0 0 0 0]';
@@ -1345,299 +1342,299 @@ title('Active APF (contour) when the HV is in Region 8')
 legend
 xlim([220 245]);
 ylim([0 6]);
-toc
+% toc
 
-%% For region 9
-x_h_0= [0 235 0 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(9)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 9')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 9')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(91)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 9');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 9')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-% legend(s, 'Potential For Region 9')
-figure(92)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 9')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
-
-%% For region 10
-x_h_0= [0 238 0 0 0 0]';
-Y_var= linspace(0, 6, data_count);
-X_var= linspace(220, 245, data_count);
-for i= 1:1:width(x_o_0)
-    if x_o_0(6,i)>0
-        flag(1,i)= region1(si_form(:,i), x_h_0);
-    elseif x_o_0(6,i)==0
-        flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
-    elseif x_o_0(6,i)<0
-        flag(1,i)= region3(si_form(:,i), x_h_0);
-    end
-end
-count1=zeros(1,width(x_o_0));
-count2=zeros(1,width(x_o_0));
-X_vartempin= zeros(1,0);
-Y_vartempin= zeros(1,0);
-X_vartempout= zeros(1,0);
-Y_vartempout= zeros(1,0);
-phone= zeros(1,0,0);
-for j= 1:length(Y_var)
-    for k=1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag1(i)= region1(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)==0
-                flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            elseif x_o_0(6,i)<0
-                flag1(i)= region3(si_form(:,i), x_h);
-                if flag1(1,i)==flag(1,i)
-%                     count1= count1+1;
-                    count1(1,i)= count1(1,i)+1;
-                    X_vartempin(i,count1(1,i))= x_h(2,1);
-                    Y_vartempin(i,count1(1,i))= x_h(3,1);
-                    phone(j,k,i)= 1;
-                else
-%                     count2= count2+1;
-                    count2(1,i)= count2(1,i)+1;
-                    X_vartempout(i,count2(1,i))= x_h(2,1);
-                    Y_vartempout(i,count2(1,i))= x_h(3,1);
-                    phone(j,k,i)= 0;
-                end
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-        end
-%         apf_obst1(j,k)= sum(u);
-    end
-end
-figure(10)
-hold on;
-plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 10')
-plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active Region when the HV is in Region 10')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-hold off;
-apf_obst2= zeros(1,0);
-for j= 1:length(Y_var)
-    for k= 1:1:length(X_var)
-        x_h(2,1)= X_var(k);
-        x_h(3,1)= Y_var(j);
-        for i= 1:1:width(x_o_0)
-            if x_o_0(6,i)>0
-                flag(i)= region1(si_form(:,i), x_h);
-            elseif x_o_0(6,i)==0
-                flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
-            elseif x_o_0(6,i)<0
-                flag(i)= region3(si_form(:,i), x_h);
-            end
-            if phone(j,k,i)==1
-                [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            elseif phone(j,k,i)==0
-                u(i)=0;
-            end
-%             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
-            apf_obst2(j,k)= sum(u);
-            if apf_obst2(j,k)>1000
-                apf_obst2(j,k)= 1000;
-            end
-        end
-        
-    end
-end
-figure(101)
-% subplot(2,1,1)
-view(3)
-hold on;
-s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 10');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-zlabel('Cost of the Potential Function')
-title('Active APF (surface) when the HV is in Region 10')
-legend;
-xlim([220 245]);
-ylim([0 6]);
-% legend(s, 'Potential For Region 10')
-figure(102)
-view(3)
-hold on;
-c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-hold off;
-shading interp;
-xlabel('Longitudinal Distance')
-ylabel('Lateral Distance')
-title('Active APF (contour) when the HV is in Region 10')
-legend
-xlim([220 245]);
-ylim([0 6]);
-toc
+% %% For region 9
+% x_h_0= [0 235 0 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(9)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 9')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 9')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(91)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 9');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 9')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% % legend(s, 'Potential For Region 9')
+% figure(92)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 9')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
+% 
+% %% For region 10
+% x_h_0= [0 238 0 0 0 0]';
+% Y_var= linspace(0, 6, data_count);
+% X_var= linspace(220, 245, data_count);
+% for i= 1:1:width(x_o_0)
+%     if x_o_0(6,i)>0
+%         flag(1,i)= region1(si_form(:,i), x_h_0);
+%     elseif x_o_0(6,i)==0
+%         flag(1,i)= region2(si_form(:,i), x_h_0, v_alp1{:,i});
+%     elseif x_o_0(6,i)<0
+%         flag(1,i)= region3(si_form(:,i), x_h_0);
+%     end
+% end
+% count1=zeros(1,width(x_o_0));
+% count2=zeros(1,width(x_o_0));
+% X_vartempin= zeros(1,0);
+% Y_vartempin= zeros(1,0);
+% X_vartempout= zeros(1,0);
+% Y_vartempout= zeros(1,0);
+% phone= zeros(1,0,0);
+% for j= 1:length(Y_var)
+%     for k=1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag1(i)= region1(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)==0
+%                 flag1(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             elseif x_o_0(6,i)<0
+%                 flag1(i)= region3(si_form(:,i), x_h);
+%                 if flag1(1,i)==flag(1,i)
+% %                     count1= count1+1;
+%                     count1(1,i)= count1(1,i)+1;
+%                     X_vartempin(i,count1(1,i))= x_h(2,1);
+%                     Y_vartempin(i,count1(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 1;
+%                 else
+% %                     count2= count2+1;
+%                     count2(1,i)= count2(1,i)+1;
+%                     X_vartempout(i,count2(1,i))= x_h(2,1);
+%                     Y_vartempout(i,count2(1,i))= x_h(3,1);
+%                     phone(j,k,i)= 0;
+%                 end
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%         end
+% %         apf_obst1(j,k)= sum(u);
+%     end
+% end
+% figure(10)
+% hold on;
+% plot(X_vartempin, Y_vartempin, 'g*', 'DisplayName','Region 10')
+% plot(X_vartempout, Y_vartempout, 'b*',  'DisplayName','Rest of the Regions')
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active Region when the HV is in Region 10')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% hold off;
+% apf_obst2= zeros(1,0);
+% for j= 1:length(Y_var)
+%     for k= 1:1:length(X_var)
+%         x_h(2,1)= X_var(k);
+%         x_h(3,1)= Y_var(j);
+%         for i= 1:1:width(x_o_0)
+%             if x_o_0(6,i)>0
+%                 flag(i)= region1(si_form(:,i), x_h);
+%             elseif x_o_0(6,i)==0
+%                 flag(i)= region2(si_form(:,i), x_h, v_alp1{:,i});
+%             elseif x_o_0(6,i)<0
+%                 flag(i)= region3(si_form(:,i), x_h);
+%             end
+%             if phone(j,k,i)==1
+%                 [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             elseif phone(j,k,i)==0
+%                 u(i)=0;
+%             end
+% %             [K(i), u(i), ux(i), uy(i), uxx(i), uyy(i), uyx(i), uxy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+%             apf_obst2(j,k)= sum(u);
+%             if apf_obst2(j,k)>1000
+%                 apf_obst2(j,k)= 1000;
+%             end
+%         end
+%         
+%     end
+% end
+% figure(101)
+% % subplot(2,1,1)
+% view(3)
+% hold on;
+% s=surf(X_var,Y_var,apf_obst2, 'DisplayName','Potential For Region 10');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, alpha);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('Cost of the Potential Function')
+% title('Active APF (surface) when the HV is in Region 10')
+% legend;
+% xlim([220 245]);
+% ylim([0 6]);
+% % legend(s, 'Potential For Region 10')
+% figure(102)
+% view(3)
+% hold on;
+% c= contour(X_var,Y_var,apf_obst2,1000, 'DisplayName', 'Contour');
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% hold off;
+% shading interp;
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% title('Active APF (contour) when the HV is in Region 10')
+% legend
+% xlim([220 245]);
+% ylim([0 6]);
+% toc
 
 %% Functions
 

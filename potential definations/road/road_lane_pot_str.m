@@ -50,7 +50,7 @@ for i= 1:length(loc_road_bound)
         for k= 1:length(X_var)
 %             U_road(i,j,k)= 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
 %             U_road(i,j,k)= b*(exp(a*(Y_var(j)-4.5))-a*(Y_var(j)-4.5)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
-            U_road(i,j,k)= b*(exp(-a*(Y_var(j)-1.5))+a*(Y_var(j)-1.5)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
+            U_road(i,j,k)= b*(exp(a*(Y_var(j)-3))-a*(Y_var(j)-3)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
 %             U_obst(i,j,k)= 
         end
     end

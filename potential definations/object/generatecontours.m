@@ -1,9 +1,9 @@
 clc;
 clear all;
-Y_var= linspace(0, 6, 400);
-X_var= linspace(220, 245, 400);
+Y_var= linspace(0, 6, 500);
+X_var= linspace(220, 245, 500);
 S1= load('apf_data_yukawa_300.mat');
-S2= load('apf_data_modyukawa_400.mat');
+S2= load('apf_data_modyukawa_500.mat');
 % figure(1)
 % view(3)
 % grid on;
@@ -34,50 +34,62 @@ S2= load('apf_data_modyukawa_400.mat');
 % % s.FaceColor = 'interp';
 % % % c= contour3(X_var,Y_var,S2.apf_obst1, 100, 'b');
 % colorbar
+% xlabel('Longitudinal Distance')
+% ylabel('Lateral Distance')
+% zlabel('U_{yuk}')
+% % title('Yukawa Potential')
+% % legend(s, 'Cost around the Obstacle')
+% % legend
+% ylim([0 6])
+% xlim([230 240])
+% % zlim([0 50])
+% 
+% contournumbers1= linspace(-200,5000,500);
+% figure(2)
+% contour(X_var,Y_var,S1.apf_obst1, contournumbers1);
 % xlabel('Horizontal Distance')
 % ylabel('Vertical Distance')
 % zlabel('Cost of the Potential Function')
-% legend(s, 'Cost around the Obstacle')
+% % legend(s, 'Cost around the Obstacle')
 % legend
 % 
-% 
-% % figure(2)
-% % contour3(X_var,Y_var,S1.apf_obst1, 100);
-% % xlabel('Horizontal Distance')
-% % ylabel('Vertical Distance')
-% % zlabel('Cost of the Potential Function')
-% % legend(s, 'Cost around the Obstacle')
-% % legend
-% 
 figure(3)
-% view(3)
-% grid on;
+view(3)
+grid on;
 % for i= 1:length(Y_var)
 %     for j=1:length(X_var)
-%         if S2.apf_obst2(i,j)>100
-%             S2.apf_obst2(i,j)= 1000;
+%         if S2.apf_obst2(i,j)>3000
+%             S2.apf_obst2(i,j)= 3000;
 %         end
 %     end
 % end
-colorbar
+
 s=surf(X_var,Y_var,S2.apf_obst2);
 hold on;
 s.EdgeColor = 'none';
 s.FaceColor = 'interp';
-% c= contour3(X_var,Y_var,S2.apf_obst2, 30, 'k');
-
-xlabel('Horizontal Distance')
-ylabel('Vertical Distance')
-zlabel('Cost of the Potential Function')
-legend(s, 'Cost around the Obstacle')
-legend
+% c= contour3(X_var,Y_var,S2.apf_obst2, 100, 'k');
+colorbar
+xlabel('Longitudinal Distance')
+ylabel('Lateral Distance')
+zlabel('U_{obs}')
+% legend(s, 'Cost around the Obstacle')
+% legend
 % ylim([0 6])
 % xlim([220 245])
 % zlim([0 50])
-
-
+% % for i= 1:length(Y_var)
+% %     for j=1:length(X_var)
+% %         if S2.apf_obst2(i,j)>5000
+% %             S2.apf_obst2(i,j)= 5000;
+% %         end
+% %     end
+% % end
+contournumbers1= linspace(-200,10000,500);
+contournumbers2= linspace(0,197.858,10);
+contournumbers= [contournumbers2 contournumbers1];
 figure(4)
-c1= contour(X_var,Y_var,S2.apf_obst2,10000);
+c1= contour(X_var,Y_var,S2.apf_obst2,contournumbers1);
 
 xlabel('Horizontal Distance')
 ylabel('Vertical Distance')
@@ -142,7 +154,7 @@ n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
 road_len= 1000;  % length of the road in meters
 
-data_count=500;
+data_count=300;
 alpha= 1000;
 Y_var= linspace(0, 6, data_count);
 X_var= linspace(220, 245, data_count);
@@ -175,7 +187,7 @@ x_o_0= [0 235 3 0 0 0]';
 
 % Data to generate the obstacle potential field
 % For modyuk with log
-A_o= 10;
+A_o= 20;
 b_o= 0.1;
 % for yukawa
 % A_o= 100;
@@ -193,7 +205,7 @@ select1= 1;% select1 variable is used to define if the host vehicle is
 % of the rectangle which represents the obstacle vehicle. 
 
 
-distance= 5; % This is the distance that the third vertex of the triangle
+distance= 0.01; % This is the distance that the third vertex of the triangle
 % added behind the host vehicle (for help with safe distance and lane
 % change) is at.
 
@@ -228,13 +240,13 @@ b= temp(:,2);
 v1= v_alp1{:,1};
 alpha= 1000;
 
-figure(1234)
-view(3)
-% grid on;
-hold on;
-surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
-xlim([220 245])
-ylim([0 6])
+% figure(1234)
+% view(3)
+% % grid on;
+% hold on;
+% surfplot_rect(x_h_0, x_o_0, distance, size_veh, select1, 0);
+% xlim([220 245])
+% ylim([0 6])
 %%
 Y_var= linspace(0, 6, data_count);
 X_var= linspace(220, 245, data_count);
@@ -243,52 +255,52 @@ count=0;
 alpha= 10000;
 apf_obst_fin=0;
 time2= tic;
-% for i= 1:length(Y_var)
-%     for j=1:length(X_var)
-%         x_h_0(2,1)= X_var(j);
-%         x_h_0(3,1)= Y_var(i);
-%         for k=1:width(x_o_0)
-%             apf_obst_fin1{1,k}= U_obst(const_o, x_o_0(:,k), x_h_0, select1, distance, size_veh, 1);
-%         end
-%         if width(x_o_0)>1
-%             apf_obst_fin= plus(apf_obst_fin1{1,:});
-%         else
-%             apf_obst_fin= apf_obst_fin1{1,1};
-%         end
-%         apf_obst1(i,j)= double(apf_obst_fin(X_var(j),Y_var(i)));
-%         if imag(apf_obst1(i,j))~=0
-%             apf_obst1(i,j)=abs(apf_obst1(i,j));
-%             count= count+1;
-%         end
-%             
-%         if apf_obst1(i,j)>alpha
-%             apf_obst1(i,j)= alpha;
-%         end        
-%     end
-% end
 for i= 1:length(Y_var)
     for j=1:length(X_var)
         x_h_0(2,1)= X_var(j);
         x_h_0(3,1)= Y_var(i);
         for k=1:width(x_o_0)
-            apf_obst_fin2{1,k}= U_obst(const_o, x_o_0(:,k), x_h_0, select1, distance, size_veh, 2);
+            apf_obst_fin1{1,k}= vpa(U_obst(const_o, x_o_0(:,k), x_h_0, select1, distance, size_veh, 1));
         end
         if width(x_o_0)>1
-            apf_obst_finfin= plus(apf_obst_fin2{1,:});
+            apf_obst_fin= plus(apf_obst_fin1{1,:});
         else
-            apf_obst_finfin= apf_obst_fin2{1,1};
+            apf_obst_fin= apf_obst_fin1{1,1};
         end
-        apf_obst2(i,j)= double(apf_obst_finfin(X_var(j),Y_var(i)));
-        if imag(apf_obst2(i,j))~=0
-            apf_obst2(i,j)=abs(apf_obst2(i,j));
-            count1= count1+1;
+        apf_obst1(i,j)= double(apf_obst_fin(X_var(j),Y_var(i)));
+        if imag(apf_obst1(i,j))~=0
+            apf_obst1(i,j)=abs(apf_obst1(i,j));
+            count= count+1;
         end
             
-        if apf_obst2(i,j)>alpha
-            apf_obst2(i,j)= alpha;
+        if apf_obst1(i,j)>alpha
+            apf_obst1(i,j)= alpha;
         end        
     end
 end
+% for i= 1:length(Y_var)
+%     for j=1:length(X_var)
+%         x_h_0(2,1)= X_var(j);
+%         x_h_0(3,1)= Y_var(i);
+%         for k=1:width(x_o_0)
+%             apf_obst_fin2{1,k}= U_obst(const_o, x_o_0(:,k), x_h_0, select1, distance, size_veh, 2);
+%         end
+%         if width(x_o_0)>1
+%             apf_obst_finfin= plus(apf_obst_fin2{1,:});
+%         else
+%             apf_obst_finfin= apf_obst_fin2{1,1};
+%         end
+%         apf_obst2(i,j)= double(apf_obst_finfin(X_var(j),Y_var(i)));
+%         if imag(apf_obst2(i,j))~=0
+%             apf_obst2(i,j)=abs(apf_obst2(i,j));
+%             count1= count1+1;
+%         end
+%             
+%         if apf_obst2(i,j)>alpha
+%             apf_obst2(i,j)= alpha;
+%         end        
+%     end
+% end
 
 % 
 figure(1234)

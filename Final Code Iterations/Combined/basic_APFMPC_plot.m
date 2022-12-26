@@ -61,7 +61,7 @@ for i=1:1:n_lanes
 end
 
 % Road Potenial Data
-eta= 100;
+eta= 1;
 A_skew = 2; 
 b_skew = 1e3;
 

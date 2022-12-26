@@ -39,18 +39,18 @@ end
 % shading interp;
 
 %% Road Potential
-% eta= 1000;
-% a= 2;
-% b=100000;
-eta= 1;
-a= 1;
-b=100;
+eta= 1000;
+a= 2;
+b=100000;
+% eta= 1;
+% a= 1;
+% b=100;
 for i= 1:length(loc_road_bound)
     for j= 1:length(Y_var)
         for k= 1:length(X_var)
 %             U_road(i,j,k)= 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
 %             U_road(i,j,k)= b*(exp(a*(Y_var(j)-4.5))-a*(Y_var(j)-4.5)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
-            U_road(i,j,k)= b*(exp(a*(Y_var(j)-3))-a*(Y_var(j)-3)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
+            U_road(i,j,k)= b*(exp(-a*(Y_var(j)-1.5))+a*(Y_var(j)-1.5)-1)+ 0.5* eta * (1/(Y_var(j)- loc_road_bound(i)))^2;
 %             U_obst(i,j,k)= 
         end
     end

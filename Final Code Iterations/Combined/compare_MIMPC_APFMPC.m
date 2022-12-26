@@ -19,6 +19,7 @@
 clear all;
 clc;
 tic
+
 %% Host Data
 
 % states are of the form [v_x X Y v_y r psi]. r is the yaw rate and psi is
@@ -67,15 +68,38 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 
 % States of the Obstacle
 % x_o_0= [10 500 1.5 0 0 0;]';  %0-1 LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change)';
+% inputname= 'Single Lane Change';
+
 % x_o_0= [10 700 4.5 0 0 0;]';  %1-0 LC
-x_o_0= [20 400 1.5 0 0 0;5 800 4.5 0 0 0]';  %Triple LC
+% inputname= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (LC 1-0)';
+
+% x_o_0= [25 500 1.5 0 0 0;5 900 4.5 0 0 0]';  %Triple LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Triple Lane Change)';
+% inputname= 'Triple Lane Change';
+
 % x_o_0= [20 600 1.5 0 0 0;20 600 4.5 0 0 0]';  %NoLC
-% x_o_0= [10 500 4.5 0 0 0;20 700 1.5 0 0 0]';  %Double LC
-% x_o_0= [10 600 1.5 0 0 0;10 600 4.5 0 0 0]';  %Braking 1(infront slow
-% % down) slow down at 
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration of HV)';
+% inputname= 'Deceleration of HV';
+
+% x_o_0= [10 400 4.5 0 0 0;25 300 1.5 0 0 0]';  %Double LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
+% inputname= 'Double Lane Change';
+
+x_o_0= [15 450 1.5 0 0 0;20 450 4.5 0 0 0]';  %Braking 1(infront slow
+% down) slow down at 
+name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration of OV)';
+inputname= 'Deceleration of OV';
+
 % x_o_0= [5 400 1.5 0 0 0;30 400 4.5 0 0 0]';  %Braking + LC + HV LC (infront slow
 % down) 260 200 200
-% x_o_0= [];  % No vehicles
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration and Lane Change of OV)';
+% inputname='Deceleration and Lane Change of OV';
+
+% x_o_0= [10 5000 1.5 0 0 0;]';  %0-1 LC;  % No vehicles
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (No Vehicles)';
+
+
 % Obstacle Potential Field Data
 A= 1;
 b= 0.01;
@@ -664,23 +688,23 @@ while x_h(2,1)<=road_len
     long_pos_host= long_pos_host + value(v{1})*T;
 %     x_h= [x_h_MIMPC(1,1) long_pos_host lat_pos_host 0 0 0]';
 %     u_h= [u_h_MIMPC(1,1) 0]';
-%     if count>=260
-%         if x_o_copy(1,2)>=0
-%             x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
-%         end
-%         if x_o_copy(1,2)<=0
-%             x_o_copy(1,2)=0;
-%         end
-%     end
-%     
-%     if count>=200
-%         if x_o_copy(1,1)>=0
-%             x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max);
-%         end
-%         if x_o_copy(1,1)<=0
-%             x_o_copy(1,1)=0;
-%         end        
-%     end
+    if count>=240
+        if x_o_copy(1,2)>=0
+            x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
+        end
+        if x_o_copy(1,2)<=5
+            x_o_copy(1,2)=5;
+        end
+    end
+    
+    if count>=240
+        if x_o_copy(1,1)>=0
+            x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max/2);
+        end
+        if x_o_copy(1,1)<=5
+            x_o_copy(1,1)=5;
+        end        
+    end
 % 
 %     if count>=200
 %             x_o_copy(3,2)= 1.5;     
@@ -779,7 +803,7 @@ while x_h(2,1)<=road_len
     a_ref_HV_list_APF_MPC(count,1)= u_traj_APFMPC(1,1);
     del_ref_HV_list_APF_MPC(count,1)= u_traj_APFMPC(2,1);
     v_x_ref_HV_list_APF_MPC(count,1)= y_traj_APFMPC(1,1);
-      
+        
     %% Plot 1  
     % First plot the given data. This data includes the road and lane markers,
     % the host vehicle (with no tail), the obstacle vehicles with tail, as 
@@ -794,20 +818,20 @@ while x_h(2,1)<=road_len
         display(count);
     end
     % x and y position of the host vehicle.
-    name= ['Fig' num2str(count)];
 %     if count>363
 %         R= rem(count,1);
 %     elseif count<=363
-        R= rem(count,2);
+        R= rem(count,5);
 %     end
-    if (R==0)
-        f= figure('Name',name, 'Position', get(0, 'Screensize'));
-        subplot(7,1,1)
+
+    if count==1
+        f= figure('Name',inputname, 'Position', get(0, 'Screensize'));
+        subplot(2,1,1)
         hold on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname);
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
@@ -817,94 +841,126 @@ while x_h(2,1)<=road_len
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
-        plotdata2(const_r)
-        plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle')
+        plotdata2(const_r);
+        ylim(loc_road_bound);
+        yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xlim([0 road_len]);
+        legend
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel({'Lateral'; 'Position'}) 
+        sgtitle('Initial Position of the HV and OV', 'FontWeight','bold')
+        page_name_png=['Fig' inputname '.png'];
+%         Requires R2020a or later
+        exportgraphics(f,page_name_png,'Resolution',300)
+    end
+    if (R==0)
+%         f= figure('Name',name, 'Position', get(0, 'Screensize'));
+        figure(count)
+        subplot(6,1,1)
+        hold on;
+        if flag_ND==0
+            for i=1:1:width(x_o_copy)
+                disname= sprintf('Path OV %d',i);
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+            end
+        %     distance=0;
+            [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+            [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+        end
+        [bound_OV2]= rect_p(size_veh, x_h, rl);
+        tria_v2= [];
+        rect_plot(bound_OV2, tria_v2,'host', 'b');
+        plotdata2(const_r);
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
         xlim([0 road_len]);
         legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('Path of the Host Vehicle')
+        title('(a) Path of the HV', 'FontWeight','bold')
 
-        subplot(7,1,2)
+        subplot(6,1,2)
         hold on;
-        plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity')
-        plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','r', 'DisplayName','Reference Host Vehicle Velocity', 'LineStyle', '--')
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Velocity of OV %d',i);
                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
             end
         end
+        plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('Longitudinal Velocity of Host Vehicle')
+        title('(b) Longitudinal Velocity of HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
-        ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
-%         ytickformat('%.4f')
+%         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+        ytickformat('%.2f')
         
-        subplot(7,1,3)
+        subplot(6,1,3)
         hold on;   
 %         plot(x_HV_list,flag_delta_list,'g', 'DisplayName','Optimal Lane with MLD Constraints with Potential', 'LineStyle', '--', 'Marker', 'o')
-        plot(x_HV_list_APF_MPC,l_HV_list_APFMPC, 'Color','b', 'DisplayName','Current HV Lane')
-        plot(x_HV_list_APF_MPC,l_HV_list_MIMPC,'r', 'DisplayName','Optimal Lane from MIMPC', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,l_HV_list_MIMPC,'g', 'DisplayName','Optimal Lane from MIMPC')
+        plot(x_HV_list_APF_MPC,l_HV_list_APFMPC, 'Color','b', 'DisplayName','Current Lane (MIMPC+APF-MPC)')
 %         plot(x_HV_list_MIMPC,l_traj_list_MIMPC,'y', 'DisplayName','Ref Lane Ref MIMPC')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Lane Number')
-        title('Optimal Lane of Host Vehicle')
+        title('(c) Lane of Host Vehicle', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
         ylim([-1 2])
 
-        subplot(7,1,4)
-        plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration')
+        subplot(6,1,4)
         hold on;
-        plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','r', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+        plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+        plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+        
         
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Acceleration')
-        title('Acceleration of the Host Vehicle')
+        title('(d) Acceleration of the HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
 
-        subplot(7,1,5)
+        subplot(6,1,5)
         hold on;
-        plot(x_HV_list_APF_MPC,flag_delta_list,'g', 'DisplayName','flag_\delta')
-        plot(x_HV_list_APF_MPC,flag_LC_list,'b', 'DisplayName','flag_{LC}', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,flag_delta_list,'c', 'DisplayName','flag_\delta (MIMPC+APF-MPC)')
+        plot(x_HV_list_APF_MPC,flag_LC_list,'y', 'DisplayName','flag_{LC} (MIMPC+APF-MPC)', 'LineStyle', '--')
 %         plot(x_HV_list_APF_MPC,flag_ND_list,'r', 'DisplayName','flag_{ND}')
 %         plot(x_HV_list_APF_MPC,flag_ND_roi_list,'m', 'DisplayName','Flag_{ND_{roi}}', 'LineStyle', '--')
         xlabel('Distance in the Longitudinal Direction')
-        title('Flags')
+        title('(e) Flags', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         ylim([-1 2]);
         xlim([0 road_len]);
 
-        subplot(7,1,6)
-        hold on;
-        for i= 1:1:width(x_o_copy)
-            disname= sprintf('Inter HV-OV%d Distance',i);
-            plot(x_HV_list_APF_MPC,d_copy_list_mat(i,:),'DisplayName',disname)
-        end
-        legend('Location', 'northeastoutside')
-        xlim([0 road_len]);
-        ylim([-d_roi d_roi]);
+%         subplot(7,1,6)
+%         hold on;
+%         for i= 1:1:width(x_o_copy)
+%             disname= sprintf('Inter HV-OV%d Distance',i);
+%             plot(x_HV_list_APF_MPC,d_copy_list_mat(i,:),'DisplayName',disname)
+%         end
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         ylim([-d_roi d_roi]);
         
-        subplot(7,1,7)
+        subplot(6,1,6)
         hold on;
-        plot(x_HV_list_APF_MPC,del_HV_list_APF_MPC,'b', 'DisplayName','Steering Angle')
-        plot(x_HV_list_APF_MPC,del_ref_HV_list_APF_MPC,'r', 'DisplayName','Reference Steering Angle', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,del_ref_HV_list_APF_MPC,'m', 'DisplayName','Reference Steering Angle', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,del_HV_list_APF_MPC,'b', 'DisplayName','Steering Angle (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction')
         ylabel('Steering Angle')
-        title('Steering Angle')
+        title('(f) Steering Angle', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
 
-        sgtitle('MIMPC-APFMPC based Integrated Path Planning and Trajectory Tracking (Passthrough)')
-        page_name_png=['Fig' num2str(count) '.png'];
+        sgtitle(name)
+%         page_name_png=['Fig' num2str(count) '.png'];
         % Requires R2020a or later
-        exportgraphics(f,page_name_png,'Resolution',300)
+%         exportgraphics(f,page_name_png,'Resolution',300)
     end
 
     %% Plot 1 -No vehicles 
@@ -2152,11 +2208,11 @@ function plotdata2(const_r)
         hold on;
     end
     for i=1:1:length(loc_road_bound)
-        yline(loc_road_bound(i), 'Color','b', 'DisplayName','Road Boundaries');
+        yline(loc_road_bound(i), 'Color','k','HandleVisibility','off');
         hold on;
     end
     for i=1:1:n_lanes
-        yline(loc_lane_cent(i), 'Color','g','LineStyle','--', 'DisplayName','Lane Centres');
+        yline(loc_lane_cent(i), 'Color','c','LineStyle','--', 'DisplayName','Lane Centres');
         hold on;
     end  
 % Add the contour of the gaussian function to the plot
@@ -2328,7 +2384,7 @@ function rect_plot(vert, tria_v,select, color)
             y_vert= vertices(:,2);
             x_vert_plot{i}= [x_vert(1:3,1);v(1,1);x_vert(4,1);x_vert(1,1)];
             y_vert_plot{i}= [y_vert(1:3,1);v(1,2);y_vert(4,1);y_vert(1,1)];
-            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color);
+            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color, 'LineStyle', '--');
             hold on
         end
     elseif select=='host' % when plotting the host vehicle

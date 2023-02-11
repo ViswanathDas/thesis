@@ -30,7 +30,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [41.6 0 4.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [41.6 0 1.5 0 0 0]'; % state of the host vehicle. 
 
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -42,7 +42,7 @@ u_h_0= [0 0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1000;  % length of the road in meters
+road_len= 1500;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -68,19 +68,34 @@ b_skew = 1e3;
 const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 
 %% Obstacle Data
-
+ 
 % States of the Obstacle
 % x_o_0= [10 500 1.5 0 0 0;]';  %0-1 LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change)';
+
 % x_o_0= [10 700 4.5 0 0 0;]';  %1-0 LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (LC 1-0)';
+
 % x_o_0= [25 500 1.5 0 0 0;5 900 4.5 0 0 0]';  %Triple LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Triple Lane Change)';
+
 % x_o_0= [20 600 1.5 0 0 0;20 600 4.5 0 0 0]';  %NoLC
-% x_o_0= [10 400 4.5 0 0 0;25 300 1.5 0 0 0]';  %Double LC
-x_o_0= [15 400 1.5 0 0 0;20 400 4.5 0 0 0]';  %Braking 1(infront slow
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration of HV)';
+
+x_o_0= [10 800 4.5 0 0 0;20 300 1.5 0 0 0]';  %Double LC
+titname= 'APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
+
+% x_o_0= [15 450 1.5 0 0 0;20 450 4.5 0 0 0]'; %Braking 1(infront slow
 % % down) slow down at 
-% x_o_0= [10 600 1.5 0 0 0;20 900 4.5 0 0 0]'; %Braking + LC + HV LC (infront slow
+% titname= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration of OV)';
+
+% x_o_0= [5 400 1.5 0 0 0;30 400 4.5 0 0 0]';  %Braking + LC + HV LC (infront slow
 % down) 260 200 200
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Decelerati)on and Lane Change of OV';
+
 % x_o_0= [10 5000 1.5 0 0 0;]';  %0-1 LC;  % No vehicles
-% Obstacle Potential Field Data
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (No Vehicles)';
+
 % Obstacle Potential Field Data
 A= 1;
 b= 0.01;
@@ -214,29 +229,29 @@ while x_h(2,1)<=road_len
                     end
                 end
             end
-            flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh);
+            flag_LC= APFMPCset_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh);
         end
         
     %% Host Vehicle Model
     
     % Model of the host vehicle for APF-MPC
-    ss_d_APFMPC= car_modelAPFMPC(car_const, T, x_h, u_h_0);
+    ss_d_APFMPC= APFMPCcar_modelAPFMPC(car_const, T, x_h, u_h_0);
     
     %% Obstacle Model
 
-    ss_d_obs_APFMPC= car_model_obs(T, 'APF-MPC');
+    ss_d_obs_APFMPC= APFMPCcar_model_obs(T, 'APF-MPC');
     
     %% Constraints Boundaries
 
     % Function used to generate the limits which define the boundary
     % constraints the host vehicle.
 
-    [a_x_max, f_ineq, b_u_ineq]= mpc_constraints2(...
+    [a_x_max, f_ineq, b_u_ineq]= APFMPCmpc_constraints2(...
         car_const, x_h, const_r, size_veh, v_x_max);
     
     %% Extended Reference Trajectory
     
-    [l_ref, y_traj_APFMPC, u_traj_APFMPC] = ref_traj_st(x_h, const_r, x_o,...
+    [flag_delta, l_ref, y_traj_APFMPC, u_traj_APFMPC] = APFMPCref_traj_st(x_h, const_r, x_o,...
         flag_LC, flag_ND, x_h_0, size_veh, distance);
         
     %% Cost Function and Optimization
@@ -278,10 +293,10 @@ while x_h(2,1)<=road_len
             x_o_temp= x_o1;
             x_o_temp= ss_d_obs_APFMPC.A* x_o_temp;
             x_o1= x_o_temp;
-            [U_0_o, U_1_o, U_2_o]= taylor2ndOrder(const_r, const_o,...
+            [U_0_o, U_1_o, U_2_o]= APFMPCtaylor2ndOrder(const_r, const_o,...
                 x_o1, x_h, 'obst', rl, distance, size_veh);
         end
-        [U_0_r, U_1_r, U_2_r]= taylor2ndOrder(const_r, const_o,...
+        [U_0_r, U_1_r, U_2_r]= APFMPCtaylor2ndOrder(const_r, const_o,...
             x_o, x_h, 'road', rl, distance, size_veh);
         
         %% Cost Function
@@ -332,27 +347,26 @@ while x_h(2,1)<=road_len
     % Saving the values of the states and the input
 
     count= count + 1;
-
-    if count>=200
-        if x_o(1,2)>=0
-            x_o(1,2)= x_o(1,2)+T*(-a_x_max/2);
-        end
-        if x_o(1,2)<5
-            x_o(1,2)=5;
-        end
-    end
-    
-    if count>=200
-        if x_o(1,1)>=0
-            x_o(1,1)= x_o(1,1)+T*(-a_x_max/4);
-        end
-        if x_o(1,1)<=5
-            x_o(1,1)=5;
-        end        
-    end
+%     if count>=240
+%         if x_o(1,2)>=0
+%             x_o(1,2)= x_o(1,2)+T*(-a_x_max);
+%         end
+%         if x_o(1,2)<=5
+%             x_o(1,2)=5;
+%         end
+%     end
+%     
+%     if count>=240
+%         if x_o(1,1)>=0
+%             x_o(1,1)= x_o(1,1)+T*(-a_x_max/2);
+%         end
+%         if x_o(1,1)<=5
+%             x_o(1,1)=5;
+%         end        
+%     end
 % 
-%     if count>=350
-%             x_o(3,1)= 4.5;     
+%     if count>=200
+%             x_o(3,2)= 1.5;     
 %     end
     if flag_ND==0
 %         if count<=200
@@ -382,6 +396,7 @@ while x_h(2,1)<=road_len
     x_HV_list(count,1)= x_h(2,1);
     y_HV_list(count,1)= x_h(3,1);
     v_y_HV_list(count,1)= x_h(4,1);
+    flag_delta_list(count,1)= flag_delta;
     flag_ND_list(count,1)= flag_ND;
     flag_LC_list(count,1)= flag_LC;
     u_h_list{count}= u_h;
@@ -411,51 +426,48 @@ while x_h(2,1)<=road_len
     % at the initial step the current value is the optimal state of the host
     % vehicle. 
     
-%     if count>=415
-%        n=1 ;
-%     else 
-      n=10  ;
+%     if count>=362
+%         display(count);
 %     end
     % x and y position of the host vehicle.
-    name= ['Fig' num2str(count)];
 %     if count>363
 %         R= rem(count,1);
 %     elseif count<=363
-        R= rem(count,n);
+        R= rem(count,5);
 %     end
-
+    name= ['Fig' num2str(count)];
     if (R==0)
         f= figure('Name',name, 'Position', get(0, 'Screensize'));
 %         figure(count);
 %         figure.Position= get(0, 'Screensize');
-        subplot(5,1,1)
+        subplot(6,1,1)
         hold on;
         if flag_ND==0
             for i=1:1:width(x_o)
                 disname= sprintf('Path OV %d',i);
-                plot(x_o_list(:,i),y_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                plot(x_o_list(:,i),y_o_list(:,i), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
             end
-            [bound_OV1]= rect_p(size_veh, x_o, rl);
-            [tria_v1]= trian(bound_OV1, distance, x_o);
-            rect_plot(bound_OV1, tria_v1,'obst', 'g');
+            [bound_OV1]= APFMPCrect_p(size_veh, x_o, rl);
+            [tria_v1]= APFMPCtrian(bound_OV1, distance, x_o);
+            APFMPCrect_plot(bound_OV1, tria_v1,'obst', 'r');
         end
-        [bound_OV2]= rect_p(size_veh, x_h, rl);
+        [bound_OV2]= APFMPCrect_p(size_veh, x_h, rl);
         tria_v2= [];
-        rect_plot(bound_OV2, tria_v2,'host','g');
-        plotdata2(const_r)
-        plot(x_HV_list,y_HV_list, 'Color','g', 'DisplayName','Path of the Host Vehicle')
+        APFMPCrect_plot(bound_OV2, tria_v2,'host','r');
+        APFMPCplotdata2(const_r)
+        plot(x_HV_list,y_HV_list, 'Color','r', 'DisplayName','Path of the Host Vehicle (APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
         xlim([0 road_len]);
         legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('Path of the Host Vehicle')
+        title('(a) Path of the HV', 'FontWeight','bold')
         
-        subplot(5,1,2)
+        subplot(6,1,2)
         hold on;
-        plot(x_HV_list,v_x_HV_list, 'Color','g', 'DisplayName','Host Vehicle Velocity')
-        plot(x_HV_list,v_x_ref_HV_list, 'Color','r', 'DisplayName','Reference Host Vehicle Velocity','LineStyle', '--')
+        plot(x_HV_list,v_x_ref_HV_list, 'Color','c', 'DisplayName','Reference Host Vehicle Velocity (APF-MPC)','LineStyle', '--')
+        plot(x_HV_list,v_x_HV_list, 'Color','r', 'DisplayName','Host Vehicle Velocity (APF-MPC)')        
         if flag_ND==0
             for i=1:1:width(x_o)
                 disname= sprintf('Velocity of OV %d',i);
@@ -464,58 +476,58 @@ while x_h(2,1)<=road_len
         end
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('Longitudinal Velocity of Host Vehicle')
+        title('(b) Longitudinal Velocity of HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
         ylim([f_ineq(2,1) f_ineq(1,1)])
         
-        subplot(5,1,3)
+        subplot(6,1,3)
         hold on;   
-        plot(x_HV_list,l_act_list, 'Color','g', 'DisplayName','Current Lane')
+        plot(x_HV_list,l_act_list, 'Color','r', 'DisplayName','Current Lane (APF-MPC)')
 %         plot(x_HV_list,l_act_list,'r', 'DisplayName','Optimal Lane from ','LineStyle', '--')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Lane Number')
-        title('Optimal Lane of Host Vehicle')
+        title('(c) Lane of Host Vehicle', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
         ylim([-1 2])
         
-        subplot(5,1,4)
-        plot(x_HV_list,a_HV_list, 'Color','g','DisplayName', 'Acceleration')
+        subplot(6,1,4)
+        plot(x_HV_list,a_HV_list, 'Color','r','DisplayName', 'Accelerationv (APF-MPC)')
         hold on;
-        plot(x_HV_list,a_ref_HV_list, 'Color','r', 'DisplayName', 'Reference Acceleration','LineStyle', '--')
+        plot(x_HV_list,a_ref_HV_list, 'Color','m', 'DisplayName', 'Reference Acceleration','LineStyle', '--')
         
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Acceleration')
-        title('Acceleration of the Host Vehicle')
+        title('(d) Acceleration of the HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
         
-%         subplot(6,1,5)
-%         hold on;
-% %         plot(x_HV_list_APF_MPC,flag_delta_list,'g', 'DisplayName','flag_\delta')
-%         plot(x_HV_list,flag_LC_list,'g', 'DisplayName','flag_{LC}')
-% %         plot(x_HV_list,flag_ND_list,'r', 'DisplayName','flag_{ND}')
-% %         plot(x_HV_list_APF_MPC,flag_ND_roi_list,'m', 'DisplayName','Flag_{ND_{roi}}', 'LineStyle', '--')
-%         xlabel('Distance in the Longitudinal Direction')
-%         title('Flag for Lane Change')
-%         legend('Location', 'northeastoutside')
-%         ylim([-1 2]);
-%         xlim([0 road_len]);
-        
-        subplot(5,1,5)
+        subplot(6,1,5)
         hold on;
-        plot(x_HV_list,del_HV_list,'g', 'DisplayName','Steering Angle')
-        plot(x_HV_list,del_ref_HV_list,'r', 'DisplayName','Reference Steering Angle','LineStyle', '--')
+        plot(x_HV_list,flag_delta_list,'m', 'DisplayName','flag_\delta (APF-MPC)', 'LineStyle', '--')
+        plot(x_HV_list,flag_LC_list,'k', 'DisplayName','flag_{LC} (APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list,flag_ND_list,'r', 'DisplayName','flag_{ND}')
+%         plot(x_HV_list_APF_MPC,flag_ND_roi_list,'m', 'DisplayName','Flag_{ND_{roi}}', 'LineStyle', '--')
+%         xlabel('Distance in the Longitudinal Direction')
+        title('(e) Flags', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        ylim([-1 2]);
+        xlim([0 road_len]);
+        
+        subplot(6,1,6)
+        hold on;
+        plot(x_HV_list,del_HV_list,'r', 'DisplayName','Steering Angle (APF-MPC)')
+        plot(x_HV_list,del_ref_HV_list,'m', 'DisplayName','Reference Steering Angle','LineStyle', '--')
         xlabel('Distance in the Longitudinal Direction')
         ylabel('Steering Angle')
-        title('Steering Angle')
+        title('(f) Steering Angle', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
         
-        sgtitle('APFMPC based Integrated Path Planning and Trajectory Tracking (LC 0-1)')
+        sgtitle(titname);
         page_name_png=['Fig' num2str(count) '.png'];
-%         % Requires R2020a or later
+        % Requires R2020a or later
         exportgraphics(f,page_name_png,'Resolution',300)
     end
     %% Plot 1  
@@ -549,14 +561,14 @@ while x_h(2,1)<=road_len
 % %                 disname= sprintf('Path OV %d',i);
 % %                 plot(x_o_list(:,i),y_o_list(:,i), 'Color','k', 'DisplayName',disname);
 % %             end
-%             [bound_OV1]= rect_p(size_veh, x_o, rl);
-%             [tria_v1]= trian(bound_OV1, distance, x_o);
-%             rect_plot(bound_OV1, tria_v1,'obst', 'c');
+%             [bound_OV1]= APFMPCrect_p(size_veh, x_o, rl);
+%             [tria_v1]= APFMPCtrian(bound_OV1, distance, x_o);
+%             APFMPCrect_plot(bound_OV1, tria_v1,'obst', 'c');
 %         end
-%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         [bound_OV2]= APFMPCrect_p(size_veh, x_h, rl);
 %         tria_v2= [];
-%         rect_plot(bound_OV2, tria_v2,'host','c');
-% %         plotdata2(const_r)
+%         APFMPCrect_plot(bound_OV2, tria_v2,'host','c');
+% %         APFMPCplotdata2(const_r)
 %         plot(x_HV_list,y_HV_list, 'Color','c', 'DisplayName','Path of the Host Vehicle without LPR')
 %         ylim(loc_road_bound);
 %         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
@@ -636,7 +648,7 @@ end
 %% Functions
 % Prediction car model used in the MPC Problem. Use of a dynamics vehicle
 % model with longitudinal velocity constant for all time. Linear model.
-function ss_d= car_modelMIMPC(T, x_o, flag_LC, flag_ND)
+function ss_d= APFMPCcar_modelMIMPC(T, x_o, flag_LC, flag_ND)
     if flag_LC== 1% This implies that the lane change is possible
      n_MLD_var= 11;
      n= n_MLD_var*width(x_o);% Number of extra inputs to be added to the host vehicle
@@ -663,7 +675,7 @@ end
 
 % Prediction car model used in the MPC Problem. Use of a dynamics vehicle
 % model with varying longitudinal velocity. Linearized model.
-function ss_d= car_modelAPFMPC(const, T, x_0, u)
+function ss_d= APFMPCcar_modelAPFMPC(const, T, x_0, u)
     C_f= const(1);        % Negative front tire cornering stiffness
     C_r= const(2);       % Negative rear tire cornering stiffness
     L_wb= const(3);          % Wheel base
@@ -756,7 +768,7 @@ function ss_d= car_modelAPFMPC(const, T, x_0, u)
 end
 
 % Prediction model for the obstacle vehicle (constant velocity)
-function ss_d= car_model_obs(T, select)
+function ss_d= APFMPCcar_model_obs(T, select)
 
     if isequal(select, 'MIMPC')
         A_obs= [1 0;
@@ -777,8 +789,8 @@ function ss_d= car_model_obs(T, select)
         
 end
 
-% Function to Generate the extended matrices of the constraint equations
-function [a_x_max, f_ineq, b_u_ineq]= mpc_constraints2(...
+% Function to Generate the extended matrices of the constraint APFMPCequations
+function [a_x_max, f_ineq, b_u_ineq]= APFMPCmpc_constraints2(...
      car_const, x_h, const_r, size_veh, v)
 %%
 
@@ -867,9 +879,9 @@ end
 % Extended reference trajectory used. Ideally the car should be in the
 % right lane, in the centre with no heading angle, lateral velocity or yaw
 % motion. Also no input to be used in the lateral direction. 
-function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
+function [flag_delta, l_ref, y_traj_APFMPC, u_traj_APFMPC]= APFMPCref_traj_st(x_h,...
     const_r, x_o, flag_LC, flag_ND, x_h_0, size_veh, distance)
-% function [y_traj u_traj]= ref_traj_st(N_p, select)
+% function [y_traj u_traj]= APFMPCref_traj_st(N_p, select)
 
     eta= const_r(1,1);
     A_skew= const_r(1,2);
@@ -1117,7 +1129,7 @@ function [l_ref, y_traj_APFMPC, u_traj_APFMPC]= ref_traj_st(x_h,...
  
 end
 
-function flag_LC= set_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh)
+function flag_LC= APFMPCset_flag_LC(x_h, x_o, lane_host, lane_obst, d_safe_max, size_lane, a_x_max, distance, x_h_0, size_veh)
 %%
     dist_LC= size_lane*sind(abs(atand(x_h(4,1)/x_h(1,1))));
     time_LC=  dist_LC/sqrt(x_h(1,1)^2+x_h(4,1)^2);
@@ -1329,7 +1341,7 @@ end
 
 % Function which generates the matrices to be used in the quadratic cost
 % function which represent the taylor series approximation of the APF.
-function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh)
+function [A1, A2, A3]= APFMPCtaylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, distance,size_veh)
     A= const_o(1,1);
     b= const_o(1,2);
     eta= const_r(1,1);
@@ -1349,10 +1361,10 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
     % Given the vertices of the obstacle, we can find then distance from a
     % point to all the vertices and all the boundaries, and find the minimum of
     % these values. 
-    [bound_OV]= rect_p(size_veh, x_o, rl);
-    [tria_v]= trian(bound_OV, distance, x_o);
-    [v_alp1 v_alp2]= vertex(bound_OV, tria_v);
-    [si_form]= equations(v_alp1, v_alp2, x_o);
+    [bound_OV]= APFMPCrect_p(size_veh, x_o, rl);
+    [tria_v]= APFMPCtrian(bound_OV, distance, x_o);
+    [v_alp1 v_alp2]= APFMPCvertex(bound_OV, tria_v);
+    [si_form]= APFMPCequations(v_alp1, v_alp2, x_o);
     
     switch select   
         case 'obst'
@@ -1362,15 +1374,15 @@ function [A1, A2, A3]= taylor2ndOrder(const_r, const_o, x_o, x_h, select, rl, di
             % values of A1, A2, and A3
             for i= 1:1:width(x_o)
                 if x_o(6,i)>0
-                    flag(i)= region1(si_form(:,i), x_h);
+                    flag(i)= APFMPCregion1(si_form(:,i), x_h);
                 elseif x_o(6,i)==0
-                    flag(i)= region2(si_form(:,i), x_h, v_alp1{1,i});
+                    flag(i)= APFMPCregion2(si_form(:,i), x_h, v_alp1{1,i});
                 elseif x_o(6,i)<0
-                    flag(i)= region3(si_form(:,i), x_h);
+                    flag(i)= APFMPCregion3(si_form(:,i), x_h);
                 end
                 [K(i), apf_obst(i), obst_u_x(i), obst_u_y(i),...
                     obst_u_xx(i), obst_u_yy(i), obst_u_yx(i), obst_u_xy(i)]...
-                    = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+                    = APFMPCdist(flag(i), v_alp1{:,i}, x_h, const_o);
             end
             %%
             a1= sum(apf_obst);
@@ -1545,7 +1557,7 @@ end
 %% Function to plot the location of the obstalces
 
 % R1- plots it in terms of rectangles
-function polyout= contourofObst(const_o, x_o)
+function polyout= APFMPCcontourofObst(const_o, x_o)
 A_o= const_o(1,1);
 x_sigma= const_o(1,2);
 y_sigma= const_o(1,3);
@@ -1557,7 +1569,7 @@ data= x_o(2:3, :);
 ang= x_o(6,:);
 fin_data= [data;ang];
 
-points= tester1([x_sigma y_sigma], fin_data);
+points= APFMPCtester1([x_sigma y_sigma], fin_data);
 
 % here I have to first seperate a rectangle based on the number of
 % obstacles and then each rectangle has to have a polyshape and a rotate
@@ -1572,7 +1584,7 @@ points= tester1([x_sigma y_sigma], fin_data);
 end
 
 % R2
-function points= tester1(siz, data)
+function points= APFMPCtester1(siz, data)
     l = siz(1,1);
     b= siz(1,2);
     ang1= atand(b/l);
@@ -1594,7 +1606,7 @@ end
 % boundaries and lane boundaries and out3 is the lane centers. The
 % locations are given by all bound and x_o whereas the lane center
 % locations are to be calculated.
-function plotdata1(x_h, x_o, const_o, const_r)
+function APFMPCplotdata1(x_h, x_o, const_o, const_r)
     eta= const_r(1,1);
     A_lane= const_r(1,2);
     sig_lane = const_r(1,3);
@@ -1644,7 +1656,7 @@ for i= 1:1:col_o
         hold on;
     end
 end
-function plotdata2(const_r)
+function APFMPCplotdata2(const_r)
     eta= const_r(1,1);
     A_skew= const_r(1,2);
     b_skew= const_r(1,3);
@@ -1662,7 +1674,7 @@ function plotdata2(const_r)
         hold on;
     end
     for i=1:1:length(loc_road_bound)
-        yline(loc_road_bound(i), 'Color','b', 'DisplayName','Road Boundaries');
+        yline(loc_road_bound(i), 'Color','b','HandleVisibility','off');
         hold on;
     end
     for i=1:1:n_lanes
@@ -1671,13 +1683,13 @@ function plotdata2(const_r)
     end  
 % Add the contour of the gaussian function to the plot
 
-% [U_RplusLplusO]= jaffa(const_r, const_o, x_o, x_h, X_var, Y_var);
+% [U_RplusLplusO]= APFMPCjaffa(const_r, const_o, x_o, x_h, X_var, Y_var);
 % contour(X_var,Y_var,U_RplusLplusO);
 % hold off;
 end
 
 % E2
-function [U_RplusLplusO, U_obst_fin]= jaffa(const_r, const_o, x_o, x_h, X_var, Y_var)
+function [U_RplusLplusO, U_obst_fin]= APFMPCjaffa(const_r, const_o, x_o, x_h, X_var, Y_var)
     U_lane_fin= zeros(length(Y_var),length(X_var)); % Matrix defined to store the lane potential values
     U_lane_fin1= zeros(length(Y_var),length(X_var));
     U_road_fin= zeros(length(Y_var),length(X_var)); % Matrix defined to store the road potential values
@@ -1791,7 +1803,7 @@ end
 %% Functions (Part2)
 % Function to find the vertices of the rectangle given the size of the
 % rectangle, the angle and then centre. 
-function [points]= rect_p(size, data, rl)
+function [points]= APFMPCrect_p(size, data, rl)
     % select1 variable is used to define if the host vehicle is
     % moving to the left or the right. Use select1= 1 for right and select1=2
     % for left
@@ -1829,7 +1841,7 @@ function [points]= rect_p(size, data, rl)
 end
 
 % function to plot a rectangle given its vertices
-function rect_plot(vert, tria_v,select, color)
+function APFMPCrect_plot(vert, tria_v,select, color)
     if select=='obst' % when plotting an obstacle
         for i=1:1:length(vert)
             v= tria_v{i};
@@ -1838,7 +1850,7 @@ function rect_plot(vert, tria_v,select, color)
             y_vert= vertices(:,2);
             x_vert_plot{i}= [x_vert(1:3,1);v(1,1);x_vert(4,1);x_vert(1,1)];
             y_vert_plot{i}= [y_vert(1:3,1);v(1,2);y_vert(4,1);y_vert(1,1)];
-            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color);
+            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color, 'LineStyle', '--');
             hold on
         end
     elseif select=='host' % when plotting the host vehicle
@@ -1857,7 +1869,7 @@ end
 % Function to find the vertices on the rear of the vehicle,P1, P2, the line
 % joining the centre of the line P1P2 and the rectangle centre and to find
 % a point a distance d from the rear of the vehicle. 
-function [tria_v]= trian(bound, distance, x_ov)
+function [tria_v]= APFMPCtrian(bound, distance, x_ov)
     % First find the last two points from bound to give you the rear
     % vertices.
 
@@ -1880,7 +1892,7 @@ function [tria_v]= trian(bound, distance, x_ov)
         
 end
 
-function [v_alp1 v_alp2]= vertex(v, tria_v)
+function [v_alp1 v_alp2]= APFMPCvertex(v, tria_v)
     for k=1:1:width(v)
         v_mat= v{1,k};
         tria= tria_v{1,k};
@@ -1898,11 +1910,11 @@ function [v_alp1 v_alp2]= vertex(v, tria_v)
     end
 end
 
-% Function to find the equations of all the 6 lines under question. The
+% Function to find the APFMPCequations of all the 6 lines under question. The
 % lines are 3 sides of the rectangle, the 2 sides of the traiangle behind
 % and the line parallel to the 4th side(rear) if the rectangle but passing
-% through the vertex of the traingle.
-function [si_form]= equations(v_alp1, v_alp2, x_o_0)
+% through the APFMPCvertex of the traingle.
+function [si_form]= APFMPCequations(v_alp1, v_alp2, x_o_0)
 
     for i=1:1:width(v_alp1)
         X= x_o_0(2,i);
@@ -1950,9 +1962,9 @@ function [si_form]= equations(v_alp1, v_alp2, x_o_0)
     end
 end
 
-% Function to find which region a point is from given equations of the 10
+% Function to find which region a point is from given APFMPCequations of the 10
 % lines, the point. For when phi>0
-function flag= region1(si_form, x_h)
+function flag= APFMPCregion1(si_form, x_h)
     flag=0;
     x= x_h(2,1);
     y= x_h(3,1);
@@ -1995,9 +2007,9 @@ function flag= region1(si_form, x_h)
     end
 end
 
-% Function to find which region a point is from given equations of the 10
+% Function to find which region a point is from given APFMPCequations of the 10
 % lines, the point. For when phi=0
-function flag= region2(si_form, x_h, v1)
+function flag= APFMPCregion2(si_form, x_h, v1)
     flag=0;
     x= x_h(2,1);
     y= x_h(3,1);
@@ -2040,9 +2052,9 @@ function flag= region2(si_form, x_h, v1)
     end
 end
 
-% Function to find which region a point is from given equations of the 10
+% Function to find which region a point is from given APFMPCequations of the 10
 % lines, the point. For when phi<0
-function flag= region3(si_form, x_h)
+function flag= APFMPCregion3(si_form, x_h)
     flag=0;
     x= x_h(2,1);
     y= x_h(3,1);
@@ -2087,15 +2099,15 @@ end
 
 % Selection of the correct form of the value of K for the Yukawa Potential
 % depending on which section it is in. 
-function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
+function [K, u, ux, uy, uxx, uyy, uyx, uxy] = APFMPCdist(flag, v, x_h_0, const)
     x= x_h_0(2,1);
     y= x_h_0(3,1);
     p= [x y];
     %%
     switch flag
         case 1
-            p1= v(1,:); % First vertex of the obstacle (bottom right) as we are dealing with Region 1.
-            p2= v(2,:); % Second vertex of the obstacle (top right) as we are dealing with Region 1.
+            p1= v(1,:); % First APFMPCvertex of the obstacle (bottom right) as we are dealing with Region 1.
+            p2= v(2,:); % Second APFMPCvertex of the obstacle (top right) as we are dealing with Region 1.
             % The next four variables are used to seperate the vertices (1
             % and 2) of the obstacle into x and y positions
             x1= p1(1,1); 
@@ -2113,17 +2125,17 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= x1 + (gamma*(x2-x1));
             yy= y1 + (gamma*((y2-y1)));
             K = sqrt((x-xx)^2+ (y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const);
         case 2
-            p1= v(2,:); % As we are in region 6, we take the fourth vertex
+            p1= v(2,:); % As we are in region 6, we take the fourth APFMPCvertex
             % of the vertices of the extended obstacle
-            x0= p1(1,1); % x position of the fourth vertex
-            y0= p1(1,2); % y position of the fourth vertex
+            x0= p1(1,1); % x position of the fourth APFMPCvertex
+            y0= p1(1,2); % y position of the fourth APFMPCvertex
             m= -(x-x0)/(y-y0); % Slope of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             b= y0-m*x0; % y-intercept of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             if isinf(m)==0
                 if m==0
@@ -2143,10 +2155,10 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= ((B*(B*x-A*y)-A*C)/(A^2+B^2));
             yy= ((A*(-B*x+A*y)-B*C)/(A^2+B^2));
             K= sqrt((x-xx)^2+(y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p,p1,const, m, b);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p,p1,const, m, b);
         case 3
-            p1= v(2,:); % Second vertex of the obstacle (bottom right) as we are dealing with Region 1.
-            p2= v(3,:); % Third vertex of the obstacle (top right) as we are dealing with Region 1.
+            p1= v(2,:); % Second APFMPCvertex of the obstacle (bottom right) as we are dealing with Region 1.
+            p2= v(3,:); % Third APFMPCvertex of the obstacle (top right) as we are dealing with Region 1.
             % The next four variables are used to seperate the vertices (1
             % and 2) of the obstacle into x and y positions
             x1= p1(1,1); 
@@ -2164,17 +2176,17 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= x1 + (gamma*(x2-x1));
             yy= y1 + (gamma*((y2-y1)));
             K = sqrt((x-xx)^2+ (y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const);
         case 4
-            p1= v(3,:); % As we are in region 6, we take the fourth vertex
+            p1= v(3,:); % As we are in region 6, we take the fourth APFMPCvertex
             % of the vertices of the extended obstacle
-            x0= p1(1,1); % x position of the fourth vertex
-            y0= p1(1,2); % y position of the fourth vertex
+            x0= p1(1,1); % x position of the fourth APFMPCvertex
+            y0= p1(1,2); % y position of the fourth APFMPCvertex
             m= -(x-x0)/(y-y0); % Slope of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             b= y0-m*x0; % y-intercept of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             if isinf(m)==0
                 if m==0
@@ -2194,10 +2206,10 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= ((B*(B*x-A*y)-A*C)/(A^2+B^2));
             yy= ((A*(-B*x+A*y)-B*C)/(A^2+B^2));
             K= sqrt((x-xx)^2+(y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p,p1,const, m, b);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p,p1,const, m, b);
         case 5
-            p1= v(3,:); % Third vertex of the obstacle (bottom right) as we are dealing with Region 1.
-            p2= v(4,:); % Fourth vertex of the obstacle (top right) as we are dealing with Region 1.
+            p1= v(3,:); % Third APFMPCvertex of the obstacle (bottom right) as we are dealing with Region 1.
+            p2= v(4,:); % Fourth APFMPCvertex of the obstacle (top right) as we are dealing with Region 1.
             % The next four variables are used to seperate the vertices (1
             % and 2) of the obstacle into x and y positions
             x1= p1(1,1); 
@@ -2215,17 +2227,17 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= x1 + (gamma*(x2-x1));
             yy= y1 + (gamma*((y2-y1)));
             K = sqrt((x-xx)^2+ (y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const);
         case 6
-            p1= v(4,:); % As we are in region 6, we take the fourth vertex
+            p1= v(4,:); % As we are in region 6, we take the fourth APFMPCvertex
             % of the vertices of the extended obstacle
-            x0= p1(1,1); % x position of the fourth vertex
-            y0= p1(1,2); % y position of the fourth vertex
+            x0= p1(1,1); % x position of the fourth APFMPCvertex
+            y0= p1(1,2); % y position of the fourth APFMPCvertex
             m= -(x-x0)/(y-y0); % Slope of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             b= y0-m*x0; % y-intercept of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             if isinf(m)==0
                 if m==0
@@ -2245,10 +2257,10 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= ((B*(B*x-A*y)-A*C)/(A^2+B^2));
             yy= ((A*(-B*x+A*y)-B*C)/(A^2+B^2));
             K= sqrt((x-xx)^2+(y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p,p1,const, m, b);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p,p1,const, m, b);
         case 7
-            p1= v(4,:); % fourth vertex of the obstacle (bottom right) as we are dealing with Region 1.
-            p2= v(5,:); % fifth vertex of the obstacle (top right) as we are dealing with Region 1.
+            p1= v(4,:); % fourth APFMPCvertex of the obstacle (bottom right) as we are dealing with Region 1.
+            p2= v(5,:); % fifth APFMPCvertex of the obstacle (top right) as we are dealing with Region 1.
             % The next four variables are used to seperate the vertices (1
             % and 2) of the obstacle into x and y positions
             x1= p1(1,1); 
@@ -2266,17 +2278,17 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= x1 + (gamma*(x2-x1));
             yy= y1 + (gamma*((y2-y1)));
             K = sqrt((x-xx)^2+ (y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const);
         case 8
-            p1= v(5,:); % As we are in region 6, we take the fourth vertex
+            p1= v(5,:); % As we are in region 6, we take the fourth APFMPCvertex
             % of the vertices of the extended obstacle
-            x0= p1(1,1); % x position of the fourth vertex
-            y0= p1(1,2); % y position of the fourth vertex
+            x0= p1(1,1); % x position of the fourth APFMPCvertex
+            y0= p1(1,2); % y position of the fourth APFMPCvertex
             m= -(x-x0)/(y-y0); % Slope of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             b= y0-m*x0; % y-intercept of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             if isinf(m)==0
                 if m==0
@@ -2296,10 +2308,10 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= ((B*(B*x-A*y)-A*C)/(A^2+B^2));
             yy= ((A*(-B*x+A*y)-B*C)/(A^2+B^2));
             K= sqrt((x-xx)^2+(y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p,p1,const, m, b);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p,p1,const, m, b);
         case 9 
-            p1= v(5,:); % fifth vertex of the obstacle (bottom right) as we are dealing with Region 1.
-            p2= v(1,:); % first vertex of the obstacle (top right) as we are dealing with Region 1.
+            p1= v(5,:); % fifth APFMPCvertex of the obstacle (bottom right) as we are dealing with Region 1.
+            p2= v(1,:); % first APFMPCvertex of the obstacle (top right) as we are dealing with Region 1.
             % The next four variables are used to seperate the vertices (1
             % and 2) of the obstacle into x and y positions
             x1= p1(1,1); 
@@ -2317,17 +2329,17 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= x1 + (gamma*(x2-x1));
             yy= y1 + (gamma*((y2-y1)));
             K = sqrt((x-xx)^2+ (y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const);
         case 10
-            p1= v(1,:); % As we are in region 6, we take the fourth vertex
+            p1= v(1,:); % As we are in region 6, we take the fourth APFMPCvertex
             % of the vertices of the extended obstacle
-            x0= p1(1,1); % x position of the fourth vertex
-            y0= p1(1,2); % y position of the fourth vertex
+            x0= p1(1,1); % x position of the fourth APFMPCvertex
+            y0= p1(1,2); % y position of the fourth APFMPCvertex
             m= -(x-x0)/(y-y0); % Slope of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             b= y0-m*x0; % y-intercept of the line perpendicular to the
-            % line joining the fourth vertex of the obstacle and the 
+            % line joining the fourth APFMPCvertex of the obstacle and the 
             % centre of the host vehicle
             if isinf(m)==0
                 if m==0
@@ -2347,7 +2359,7 @@ function [K, u, ux, uy, uxx, uyy, uyx, uxy] = dist(flag, v, x_h_0, const)
             xx= ((B*(B*x-A*y)-A*C)/(A^2+B^2));
             yy= ((A*(-B*x+A*y)-B*C)/(A^2+B^2));
             K= sqrt((x-xx)^2+(y-yy)^2);
-            [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p,p1,const, m, b);
+            [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p,p1,const, m, b);
         case 11
             display('Point Inside the Car');
             K= 2e-10;
@@ -2367,7 +2379,7 @@ end
 % line and then point at which the vehicle lies. Also as input are the
 % constants of the potential field
 
-function [u, ux, uy, uxx, uyy, uyx, uxy]= derv1(p1, p2, p, const)
+function [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv1(p1, p2, p, const)
 %%
     A0= const(1,1);
     b0= const(1,2);
@@ -2412,7 +2424,7 @@ end
 % the obstacle and point at which the vehicle lies. Also as input are the
 % constants of the potential field
 
-function [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p, p1, const, m, b)
+function [u, ux, uy, uxx, uyy, uyx, uxy]= APFMPCderv2(p, p1, const, m, b)
     A0= const(1,1);
     b0= const(1,2);
     x= p(1,1);
@@ -2460,12 +2472,12 @@ function [u, ux, uy, uxx, uyy, uyx, uxy]= derv2(p, p1, const, m, b)
 end
 % Draw a surface plot to show the actual obstacle and division into
 % regions
-function surfplot_rect(x_h_0, x_o_0, distance, size_veh, rl, alpha)
-[bound_OV]= rect_p(size_veh, x_o_0, rl);
-[tria_v]= trian(bound_OV, distance, x_o_0);
+function APFMPCsurfplot_rect(x_h_0, x_o_0, distance, size_veh, rl, alpha)
+[bound_OV]= APFMPCrect_p(size_veh, x_o_0, rl);
+[tria_v]= APFMPCtrian(bound_OV, distance, x_o_0);
 
-[v_alp1 v_alp2]= vertex(bound_OV, tria_v);
-[si_form]= equations(v_alp1, v_alp2, x_o_0);
+[v_alp1 v_alp2]= APFMPCvertex(bound_OV, tria_v);
+[si_form]= APFMPCequations(v_alp1, v_alp2, x_o_0);
     for i=1:1:length(v_alp1)
         vertices1= v_alp1{i}(:,1);
         vertices2= v_alp1{i}(:,2);
@@ -2519,34 +2531,34 @@ function surfplot_rect(x_h_0, x_o_0, distance, size_veh, rl, alpha)
 %     legend;
 end
 
-function [A1 A2 A3]= forcontour(const_r, const_o, x_o, x_h, select, rl, distance)
+function [A1 A2 A3]= APFMPCforcontour(const_r, const_o, x_o, x_h, select, rl, distance)
     A= const_o(1,1);
     b= const_o(1,2);
     [row, col]=size(x_o);
     x= x_h(2,1);
     y= x_h(3,1);
     size_veh= [2.5 1.5]; % Size of the vehicle
-    [bound_OV]= rect_p(size_veh, x_o, rl);
+    [bound_OV]= APFMPCrect_p(size_veh, x_o, rl);
     % Given the vertices of the obstacle, we can find then distance from a
     % point to all the vertices and all the boundaries, and find the minimum of
     % these values. 
-    [bound_OV]= rect_p(size_veh, x_o, rl);
-    [tria_v]= trian(bound_OV, distance, x_o);
-    [v_alp1 v_alp2]= vertex(bound_OV, tria_v);
-    [si_form]= equations(v_alp1, v_alp2, x_o);
+    [bound_OV]= APFMPCrect_p(size_veh, x_o, rl);
+    [tria_v]= APFMPCtrian(bound_OV, distance, x_o);
+    [v_alp1 v_alp2]= APFMPCvertex(bound_OV, tria_v);
+    [si_form]= APFMPCequations(v_alp1, v_alp2, x_o);
 %% Obstacle Potential             
             % write the derivative for the obstacle potential for x, y, xx,
             % xy, yx, and yy. Substitute the actual values and then get the
             % values of A1, A2, and A3
             for i= 1:1:width(x_o)
                 if x_o(6,1)>0
-                    flag(i)= region1(si_form(:,i), x_h);
+                    flag(i)= APFMPCregion1(si_form(:,i), x_h);
                 elseif x_o(6,1)==0
-                    flag(i)= region2(si_form(:,i), x_h, v_alp1{1,i});
+                    flag(i)= APFMPCregion2(si_form(:,i), x_h, v_alp1{1,i});
                 elseif x_o(6,1)<0
-                    flag(i)= region3(si_form(:,i), x_h);
+                    flag(i)= APFMPCregion3(si_form(:,i), x_h);
                 end
-                [K(i), apf_obst(i), obst_u_x(i), obst_u_y(i), obst_u_xx(i), obst_u_yy(i), obst_u_yx(i), obst_u_xy(i)] = dist(flag(i), v_alp1{:,i}, x_h, const_o);
+                [K(i), apf_obst(i), obst_u_x(i), obst_u_y(i), obst_u_xx(i), obst_u_yy(i), obst_u_yx(i), obst_u_xy(i)] = APFMPCdist(flag(i), v_alp1{:,i}, x_h, const_o);
             end
             %%
             a1= sum(apf_obst);

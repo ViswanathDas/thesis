@@ -39,7 +39,7 @@ u_h_0_MIMPC= [0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1500;  % length of the road in meters
+road_len= 1400;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -86,7 +86,7 @@ x_o_0= [10 400 4.5 0 0 0;25 300 1.5 0 0 0]';  %Double LC
 name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
 inputname= 'Double Lane Change';
 
-% x_o_0= [10 600 1.5 0 0 0;10 600 4.5 0 0 0]';  %Braking 1(infront slow
+% x_o_0= [15 450 1.5 0 0 0;20 450 4.5 0 0 0]';  %Braking 1(infront slow
 % % down) slow down at 
 % name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Deceleration of OV)';
 % inputname= 'Deceleration of OV';
@@ -688,21 +688,21 @@ while x_h(2,1)<=road_len
     long_pos_host= long_pos_host + value(v{1})*T;
 %     x_h= [x_h_MIMPC(1,1) long_pos_host lat_pos_host 0 0 0]';
 %     u_h= [u_h_MIMPC(1,1) 0]';
-%     if count>=260
+%     if count>=240
 %         if x_o_copy(1,2)>=0
 %             x_o_copy(1,2)= x_o_copy(1,2)+T*(-a_x_max);
 %         end
-%         if x_o_copy(1,2)<=0
-%             x_o_copy(1,2)=0;
+%         if x_o_copy(1,2)<=5
+%             x_o_copy(1,2)=5;
 %         end
 %     end
 %     
-%     if count>=200
+%     if count>=240
 %         if x_o_copy(1,1)>=0
-%             x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max);
+%             x_o_copy(1,1)= x_o_copy(1,1)+T*(-a_x_max/2);
 %         end
-%         if x_o_copy(1,1)<=0
-%             x_o_copy(1,1)=0;
+%         if x_o_copy(1,1)<=5
+%             x_o_copy(1,1)=5;
 %         end        
 %     end
 % 
@@ -804,6 +804,14 @@ while x_h(2,1)<=road_len
     del_ref_HV_list_APF_MPC(count,1)= u_traj_APFMPC(2,1);
     v_x_ref_HV_list_APF_MPC(count,1)= y_traj_APFMPC(1,1);
     
+    % For RMS of rate of change of acceleration
+    % The idea is to find the root mean square value of the difference in
+    % acceleration
+    if count==1
+    diff_accel(count,1)=  a_HV_list_APF_MPC(count,1)-0;
+    else
+    diff_accel(count,1)=  a_HV_list_APF_MPC(count,1)-a_HV_list_APF_MPC(count-1,1);
+    end
       
     %% Plot 1  
     % First plot the given data. This data includes the road and lane markers,
@@ -825,558 +833,1755 @@ while x_h(2,1)<=road_len
         R= rem(count,5);
 %     end
 
-    if count==29
+%% SLC
+%     if count==16
+%         f1= figure(1);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%     end
+%     if count==30
+%         f2= figure(2);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%     end
+%     if count==142
+%         f3= figure(3);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%     end
+%     if count==165
+%         f4= figure(4);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%     end
+%% NoLC
+%     if count==142
+%         f1= figure(1);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend('Location', 'northeastoutside')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==167
+%         f2= figure(2);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend('Location', 'northeastoutside')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==227
+%         f3= figure(3);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend('Location', 'northeastoutside')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==290
+%         f4= figure(4);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend('Location', 'northeastoutside')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%% DLC
+    if count==30
         f1= figure(1);
-        subplot(9,1,1)
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
         legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(a_1) Path of the HV', 'FontWeight','bold')
-        subplot(9,1,2)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(a_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     if count==36
-        f1= figure(1);
-        subplot(9,1,3)
+        f2= figure(2);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(b_1) Path of the HV', 'FontWeight','bold')
-        subplot(9,1,4)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(b_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
-    if count==42
-        f1= figure(1);
-        subplot(9,1,5)
+    if count==43
+        f3= figure(3);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(c_1) Path of the HV', 'FontWeight','bold')
-        subplot(9,1,6)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(c_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     if count==50
-        f1= figure(1);
-        subplot(9,1,7)
+        f4= figure(4);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(d_1) Path of the HV', 'FontWeight','bold')
+        title('(1) Path of the HV', 'FontWeight','bold')
     end
-    if count==64
-        f1= figure(1);
-        subplot(9,1,8)
+    if count==60
+        f5= figure(5);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(e_1) Path of the HV', 'FontWeight','bold')
-        subplot(9,1,9)
+        title('(1) Path of the HV', 'FontWeight','bold')
+    end
+    if count==67
+        f6= figure(6);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Path OV %d',i);
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+            end
+        %     distance=0;
+            [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+            [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+        end
+        [bound_OV2]= rect_p(size_veh, x_h, rl);
+        tria_v2= [];
+        rect_plot(bound_OV2, tria_v2,'host', 'b');
+        plotdata2(const_r);
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+        ylim(loc_road_bound);
+        yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
+        xlim([0 road_len]);
+        legend('Location', 'northeastoutside')
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel({'Lateral'; 'Position'}) 
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
+        hold on;
+        grid on;
+        if flag_ND==0
+            for i=1:1:width(x_o_copy)
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(e_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     
     if count==75
-        f2= figure(2);
-        subplot(8,1,1)
+        f7= figure(7);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
         legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(f_1) Path of the HV', 'FontWeight','bold')
-        subplot(8,1,2)
-        hold on;
-        if flag_ND==0
-            for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
-            end
-        end
-        plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
-        plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
-        xlabel('Distance in the Longitudinal Direction') 
-        ylabel({'Longitudinal';' Velocity'})
-        title('(g_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-        legend('Location', 'northeastoutside')
-        xlim([0 road_len]);
-%         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
-        ytickformat('%.2f')
+        title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
     end
-    if count==102
-        f2= figure(2);
-        subplot(8,1,3)
+    if count==105
+        f8= figure(8);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(g_1) Path of the HV', 'FontWeight','bold')
-        subplot(8,1,4)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(g_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     if count==140
-        f2= figure(2);
-        subplot(8,1,5)
+        f9= figure(9);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(h_1) Path of the HV', 'FontWeight','bold')
-        subplot(8,1,6)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(h_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
-    if count==334
-        f2= figure(2);
-        subplot(8,1,7)
+    if count==332
+        f10= figure(10);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(i_1) Path of the HV', 'FontWeight','bold')
-        subplot(8,1,8)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(i_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     
-    if count==352
-        f3= figure(3);
-        subplot(7,1,1)
+    if count==353
+        f11= figure(11);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
         legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(j_1) Path of the HV', 'FontWeight','bold')
-        subplot(7,1,2)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(j_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
         legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
     if count==365
-        f3= figure(3);
-        subplot(7,1,3)
+        f12= figure(12);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(k_1) Path of the HV', 'FontWeight','bold')
+        title('(1) Path of the HV', 'FontWeight','bold')
     end  
-    if count==385
-        f3= figure(3);
-        subplot(7,1,4)
+    if count==374
+        f13= figure(13);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(l_1) Path of the HV', 'FontWeight','bold')
-        subplot(7,1,5)
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(l_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
     end
-    if count==420
-        f3= figure(3);
-        subplot(7,1,6)
+    if count==380
+        f14= figure(14);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
                 disname= sprintf('Path OV %d',i);
-                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','k', 'DisplayName',disname,'HandleVisibility','off');
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
             end
         %     distance=0;
             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
-            rect_plot(bound_OV1, tria_v1,'obst', 'b');
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
         end
         [bound_OV2]= rect_p(size_veh, x_h, rl);
         tria_v2= [];
         rect_plot(bound_OV2, tria_v2,'host', 'b');
         plotdata2(const_r);
-        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Path of the Host Vehicle (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
         xlim([0 road_len]);
-%         legend
+        legend('Location', 'northeastoutside')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Lateral'; 'Position'}) 
-        title('(m_1) Path of the HV', 'FontWeight','bold')
-        subplot(7,1,7)
+        title('(1) Path of the HV', 'FontWeight','bold')
+    end
+    if count==446
+        f15= figure(15);
+        subplot(3,1,1)
         hold on;
+        grid on;
         if flag_ND==0
             for i=1:1:width(x_o_copy)
-                disname= sprintf('Velocity of OV %d',i);
-                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','k', 'DisplayName',disname);
+                disname= sprintf('Path OV %d',i);
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+            end
+        %     distance=0;
+            [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+            [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+        end
+        [bound_OV2]= rect_p(size_veh, x_h, rl);
+        tria_v2= [];
+        rect_plot(bound_OV2, tria_v2,'host', 'b');
+        plotdata2(const_r);
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+        ylim(loc_road_bound);
+        yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
+        xlim([0 road_len]);
+        legend('Location', 'northeastoutside')
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel({'Lateral'; 'Position'}) 
+        title('(1) Path of the HV', 'FontWeight','bold')
+        subplot(3,1,2)
+        hold on;
+        grid on;
+        if flag_ND==0
+            for i=1:1:width(x_o_copy)
+                disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
             end
         end
         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
         xlabel('Distance in the Longitudinal Direction') 
         ylabel({'Longitudinal';' Velocity'})
-        title('(m_2) Longitudinal Velocity of the HV', 'FontWeight','bold')
-%         legend('Location', 'northeastoutside')
+        title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
         xlim([0 road_len]);
+        xticks(0:100:road_len)
 %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
         ytickformat('%.2f')
+%         subplot(3,1,3)
+%         hold on;
+%         grid on;
+%         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+%         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel('Acceleration')
+%         xticks(0:100:road_len)
+%         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+%         xlim([0 road_len]);
+%         legend
+    end
+%     
+%% OVBrake
+%     if count==77
+%         f1= figure(1);
+%         subplot(3,1,1)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Path OV %d',i);
+%                 plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%             end
+%         %     distance=0;
+%             [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%             [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%             rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%         end
+%         [bound_OV2]= rect_p(size_veh, x_h, rl);
+%         tria_v2= [];
+%         rect_plot(bound_OV2, tria_v2,'host', 'b');
+%         plotdata2(const_r);
+%         plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%         plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%         ylim(loc_road_bound);
+%         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%         xticks(0:100:road_len)
+%         xlim([0 road_len]);
+%         legend('Location', 'northeastoutside')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Lateral'; 'Position'}) 
+%         title('(1) Path of the HV', 'FontWeight','bold')
+%         subplot(3,1,2)
+%         hold on;
+%         grid on;
+%         if flag_ND==0
+%             for i=1:1:width(x_o_copy)
+%                 disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%                 plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%             end
+%         end
+%         plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%         plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%         xlabel('Distance in the Longitudinal Direction') 
+%         ylabel({'Longitudinal';' Velocity'})
+%         title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%         ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==80
+%     f2= figure(2);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==138
+%     f3= figure(3);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==225
+%     f4= figure(4);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==245
+%     f5= figure(5);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==250
+%     f6= figure(6);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==284
+%     f7= figure(7);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+%     if count==400
+%     f8= figure(8);
+%     subplot(3,1,1)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Path OV %d',i);
+%             plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color','#FF69B4', 'DisplayName',disname,'HandleVisibility','off','LineWidth', 1.5);
+%         end
+%     %     distance=0;
+%         [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+%         [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+%         rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+%     end
+%     [bound_OV2]= rect_p(size_veh, x_h, rl);
+%     tria_v2= [];
+%     rect_plot(bound_OV2, tria_v2,'host', 'b');
+%     plotdata2(const_r);
+%     plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+%     plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+%     ylim(loc_road_bound);
+%     yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+%     xticks(0:100:road_len)
+%     xlim([0 road_len]);
+%     legend('Location', 'northeastoutside')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Lateral'; 'Position'}) 
+%     title('(1) Path of the HV', 'FontWeight','bold')
+%     subplot(3,1,2)
+%     hold on;
+%     grid on;
+%     if flag_ND==0
+%         for i=1:1:width(x_o_copy)
+%             disname= sprintf('Velocity of OV %d (MIMPC+APF-MPC)',i);
+%             plot(x_OV_list_mat(i,:),v_o_list(:,i), 'Color','#FF69B4', 'DisplayName',disname,'LineWidth', 1.5);
+%         end
+%     end
+%     plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+%     plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+%     xlabel('Distance in the Longitudinal Direction') 
+%     ylabel({'Longitudinal';' Velocity'})
+%     title('(2) Longitudinal Velocity of the HV', 'FontWeight','bold')
+%     legend('Location', 'northeastoutside')
+%     xlim([0 road_len]);
+%     xticks(0:100:road_len)
+% %         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+%     ytickformat('%.2f')
+% %         subplot(3,1,3)
+% %         hold on;
+% %         grid on;
+% %         plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+% %         plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+% %         xlabel('Distance in the Longitudinal Direction') 
+% %         ylabel('Acceleration')
+% %         xticks(0:100:road_len)
+% %         title('(3) Longitudinal Acceleration of the HV', 'FontWeight','bold')
+% %         xlim([0 road_len]);
+% %         legend
+%     end
+
+%% Final Plot 
+    if (count==446)
+%         f= figure('Name',name, 'Position', get(0, 'Screensize'));
+        figure(count)
+        subplot(6,1,1)
+        hold on;
+        grid on;
+        if flag_ND==0
+            for i=1:1:width(x_o_copy)
+                disname= sprintf('Path OV %d',i);
+                plot(x_OV_list_mat(i,:),y_OV_list_mat(i,:), 'Color', '#FF69B4', 'DisplayName',disname,'HandleVisibility','off', 'LineWidth', 1.5);
+            end
+        %     distance=0;
+            [bound_OV1]= rect_p(size_veh, x_o_copy, rl);
+            [tria_v1]= trian(bound_OV1, distance, x_o_copy);
+            rect_plot(bound_OV1, tria_v1,'obst', '#FF69B4');
+        end
+        [bound_OV2]= rect_p(size_veh, x_h, rl);
+        tria_v2= [];
+        rect_plot(bound_OV2, tria_v2,'host', 'b');
+        plotdata2(const_r);
+        plot(x_HV_list_APF_MPC,y_HV_list_MIMPC, 'Color','g', 'DisplayName','Planned Path (MIMPC)')
+        plot(x_HV_list_APF_MPC,y_HV_list_APF_MPC, 'Color','b', 'DisplayName','Path of the Host Vehicle (MIMPC+APF-MPC)')
+        ylim(loc_road_bound);
+        yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
+        xticks(0:100:road_len)
+        xlim([0 road_len]);
+        legend('Location', 'northeastoutside')
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel({'Lateral'; 'Position'}) 
+        title('(1) Path of the HV', 'FontWeight','bold')
+
+        subplot(6,1,2)
+        hold on;
+        grid on;
+        if flag_ND==0
+            for i=1:1:width(x_o_copy)
+                disname= sprintf('Velocity of OV %d',i);
+                plot(x_OV_list_mat(i,:),v_o_list(:,i),'Color', '#FF69B4', 'DisplayName',disname, 'LineWidth', 1.5);
+            end
+        end
+        plot(x_HV_list_APF_MPC,v_x_ref_HV_list_APF_MPC, 'Color','m', 'DisplayName','Reference Host Vehicle Velocity (MIMPC+APF-MPC)', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,v_x_HV_list_APF_MPC, 'Color','b', 'DisplayName','Host Vehicle Velocity (MIMPC+APF-MPC)')
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel({'Longitudinal';' Velocity'})
+        title('(2) Longitudinal Velocity of HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        xlim([0 road_len]);
+        xticks(0:100:road_len)
+%         ylim([f_ineq_APFMPC(2,1) f_ineq_APFMPC(1,1)])
+        ytickformat('%.2f')
+        
+        subplot(6,1,3)
+        hold on; 
+        grid on;
+%         plot(x_HV_list,flag_delta_list,'g', 'DisplayName','Optimal Lane with MLD Constraints with Potential', 'LineStyle', '--', 'Marker', 'o')
+        plot(x_HV_list_APF_MPC,l_HV_list_MIMPC,'g', 'DisplayName','Optimal Lane from MIMPC')
+        plot(x_HV_list_APF_MPC,l_HV_list_APFMPC, 'Color','b', 'DisplayName','Current Lane (MIMPC+APF-MPC)')
+%         plot(x_HV_list_MIMPC,l_traj_list_MIMPC,'y', 'DisplayName','Ref Lane Ref MIMPC')
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel('Lane Number')
+        title('(3) Lane of Host Vehicle', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        xlim([0 road_len]);
+        xticks(0:100:road_len)
+        ylim([-1 2])
+
+        subplot(6,1,4)
+        hold on;
+        grid on;
+        plot(x_HV_list_APF_MPC,a_ref_HV_list_APF_MPC, 'Color','m', 'LineStyle', '--', 'DisplayName', 'Reference Acceleration')
+        plot(x_HV_list_APF_MPC,a_HV_list_APF_MPC, 'Color','b','DisplayName', 'Acceleration (MIMPC+APF-MPC)')
+        xticks(0:100:road_len)
+        
+        
+        xlabel('Distance in the Longitudinal Direction') 
+        ylabel('Acceleration')
+        title('(4) Acceleration of the HV', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        xlim([0 road_len]);
+
+        subplot(6,1,5)
+        hold on;
+        grid on;
+        plot(x_HV_list_APF_MPC,flag_delta_list,'Color','#7E2F8E', 'DisplayName','flag_\delta (MIMPC+APF-MPC)', 'LineWidth', 1.5)
+        plot(x_HV_list_APF_MPC,flag_LC_list,'Color','#EDB120', 'DisplayName','flag_{LC} (MIMPC+APF-MPC)', 'LineStyle', '--', 'LineWidth', 1.5)
+%         plot(x_HV_list_APF_MPC,flag_ND_list,'r', 'DisplayName','flag_{ND}')
+%         plot(x_HV_list_APF_MPC,flag_ND_roi_list,'m', 'DisplayName','Flag_{ND_{roi}}', 'LineStyle', '--')
+        xlabel('Distance in the Longitudinal Direction')
+        title('(5) Flags', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        ylim([-1 2]);
+        xticks(0:100:road_len)
+        xlim([0 road_len]);
+
+%         subplot(7,1,6)
+%         hold on;
+%         for i= 1:1:width(x_o_copy)
+%             disname= sprintf('Inter HV-OV%d Distance',i);
+%             plot(x_HV_list_APF_MPC,d_copy_list_mat(i,:),'DisplayName',disname)
+%         end
+%         legend('Location', 'northeastoutside')
+%         xlim([0 road_len]);
+%         ylim([-d_roi d_roi]);
+        
+        subplot(6,1,6)
+        hold on;
+        grid on;
+        plot(x_HV_list_APF_MPC,del_ref_HV_list_APF_MPC,'m', 'DisplayName','Reference Steering Angle', 'LineStyle', '--')
+        plot(x_HV_list_APF_MPC,del_HV_list_APF_MPC,'b', 'DisplayName','Steering Angle (MIMPC+APF-MPC)')
+        xlabel('Distance in the Longitudinal Direction')
+        ylabel('Steering Angle')
+        title('(6) Steering Angle', 'FontWeight','bold')
+        legend('Location', 'northeastoutside')
+        xlim([0 road_len]);
+        xticks(0:100:road_len)
+
+        sgtitle(name)
+% %         page_name_png=['Fig' num2str(count) '.png'];
+%         % Requires R2020a or later
+% %         exportgraphics(f,page_name_png,'Resolution',300)
     end
     %% Plot 1 -No vehicles 
 %     % First plot the given data. This data includes the road and lane markers,
@@ -1502,6 +2707,14 @@ while x_h(2,1)<=road_len
 
 end
 toc
+rms_accel_base= 0;
+rms_accel_base1= 0;
+for i=1:1:count
+    rms_accel_base= rms_accel_base+ diff_accel(i,1)^2;
+    rms_accel_base1= rms_accel_base1+ a_HV_list_APF_MPC(i,1)^2;
+end
+rms_accel= sqrt(rms_accel_base/count);
+rms_accel1= sqrt(rms_accel_base1/count);
 X_list= horzcat(X_list{:});
 u_h_list= horzcat(u_h_list{:});
 X_obs_list= cell2mat(X_obs_list);
@@ -2619,7 +3832,7 @@ function plotdata2(const_r)
 % green
 
     for i=1:1:length(loc_lane_bound)
-        yline(loc_lane_bound(i), 'Color','c', 'DisplayName','Lane Boundaries');
+        yline(loc_lane_bound(i), 'Color','k', 'DisplayName','Lane Boundaries');
         hold on;
     end
     for i=1:1:length(loc_road_bound)
@@ -2627,7 +3840,7 @@ function plotdata2(const_r)
         hold on;
     end
     for i=1:1:n_lanes
-        yline(loc_lane_cent(i), 'Color','c','LineStyle','--', 'DisplayName','Lane Centres');
+        yline(loc_lane_cent(i), 'Color','k','LineStyle','--', 'DisplayName','Lane Centres');
         hold on;
     end  
 % Add the contour of the gaussian function to the plot
@@ -2799,7 +4012,7 @@ function rect_plot(vert, tria_v,select, color)
             y_vert= vertices(:,2);
             x_vert_plot{i}= [x_vert(1:3,1);v(1,1);x_vert(4,1);x_vert(1,1)];
             y_vert_plot{i}= [y_vert(1:3,1);v(1,2);y_vert(4,1);y_vert(1,1)];
-            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color, 'LineStyle', '--');
+            plot(x_vert_plot{i}, y_vert_plot{i},'HandleVisibility','off', 'Color', color, 'LineWidth', 1.5);
             hold on
         end
     elseif select=='host' % when plotting the host vehicle

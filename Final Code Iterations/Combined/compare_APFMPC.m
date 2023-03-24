@@ -30,7 +30,7 @@ clc;
 % the yaw angle. v_x and v_y are longitudinal and lateral velocities and X
 % Y are  coordinates.
 
-x_h_0= [35 0 1.5 0 0 0]'; % state of the host vehicle. 
+x_h_0= [41.6 0 4.5 0 0 0]'; % state of the host vehicle. 
 
 % U=[F_x delta]'
 u_h_0= [0 0]';
@@ -42,7 +42,7 @@ u_h_0= [0 0]';
 
 n_lanes= 2; % number of lanes
 size_lane = 3; % width of lane in meters
-road_len= 1000;  % length of the road in meters
+road_len= 1400;  % length of the road in meters
 
 % Lateral Position of the lane boundaries (does not include the 
 % outer boundaries of the road)
@@ -70,8 +70,8 @@ const_r= [eta A_skew b_skew n_lanes all_bound loc_lane_cent];
 %% Obstacle Data
  
 % States of the Obstacle
-x_o_0= [10 500 1.5 0 0 0;]';  %0-1 LC
-name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change)';
+% x_o_0= [10 500 1.5 0 0 0;]';  %0-1 LC
+% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Single Lane Change)';
 
 % x_o_0= [10 700 4.5 0 0 0;]';  %1-0 LC
 % name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (LC 1-0)';
@@ -84,8 +84,8 @@ name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning a
 
 % x_o_0= [10 800 4.5 0 0 0;20 300 1.5 0 0 0]';  %Double LC
 % name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
-% x_o_0= [10 400 4.5 0 0 0;25 300 1.5 0 0 0]';  %Double LC
-% name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
+x_o_0= [10 400 4.5 0 0 0;25 300 1.5 0 0 0]';  %Double LC
+name= 'Comparision of MIMPC+APF-MPC and APF-MPC based Integrated Path Planning and Trajectory Tracking (Double Lane Change)';
 
 % x_o_0= [15 450 1.5 0 0 0;20 450 4.5 0 0 0]'; %Braking 1(infront slow
 % % down) slow down at 
@@ -435,7 +435,7 @@ while x_h(2,1)<=road_len
 %     if count>363
 %         R= rem(count,1);
 %     elseif count<=363
-        R= rem(count,10);
+        R= rem(count,5);
 %     end
 %     if count==1
 %         figure(3000);
@@ -467,8 +467,8 @@ while x_h(2,1)<=road_len
 % %         exportgraphics(f,page_name_png,'Resolution',300)
 %     end
     if (R==0)
-%         f= figure('Name',name, 'Position', get(0, 'Screensize'));
-        figure(count);
+        f= figure('Name',name, 'Position', get(0, 'Screensize'));
+%         figure(count);
 %         figure.Position= get(0, 'Screensize');
         subplot(6,1,1)
         hold on;
@@ -485,7 +485,7 @@ while x_h(2,1)<=road_len
         [bound_OV2]= APFMPCrect_p(size_veh, x_h, rl);
         tria_v2= [];
         APFMPCrect_plot(bound_OV2, tria_v2,'host','r');
-%         APFMPCplotdata2(const_r)
+        APFMPCplotdata2(const_r)
         plot(x_HV_list,y_HV_list, 'Color','r', 'DisplayName','Path of the Host Vehicle (APF-MPC)')
         ylim(loc_road_bound);
         yticks(linspace(0,n_lanes*size_lane, n_lanes*2+1));
@@ -519,7 +519,7 @@ while x_h(2,1)<=road_len
         hold on; 
         grid on;
         plot(x_HV_list,l_act_list, 'Color','r', 'DisplayName','Current Lane (APF-MPC)')
-%         plot(x_HV_list,l_act_list,'r', 'DisplayName','Optimal Lane from ','LineStyle', '--')
+%         plot(x_HV_list,l_act_list, 'Color','#77AC30', 'DisplayName','Optimal Lane ','LineStyle', '--', 'LineWidth', 1.5)
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Lane Number')
         title('(3) Lane of Host Vehicle', 'FontWeight','bold')
@@ -529,11 +529,11 @@ while x_h(2,1)<=road_len
         xticks(0:100:road_len)
         
         subplot(6,1,4)
-        grid on;
         plot(x_HV_list,a_HV_list, 'Color','r','DisplayName', 'Acceleration (APF-MPC)')
         hold on;
+        grid on;
         xticks(0:100:road_len)
-%         plot(x_HV_list,a_ref_HV_list, 'Color','r', 'DisplayName', 'Reference Acceleration','LineStyle', '--')
+        plot(x_HV_list,a_ref_HV_list, 'Color','#77AC30', 'DisplayName', 'Reference Acceleration','LineStyle', '--', 'LineWidth', 1.5)
         
         xlabel('Distance in the Longitudinal Direction') 
         ylabel('Acceleration')
@@ -560,7 +560,7 @@ while x_h(2,1)<=road_len
         hold on;
         grid on;
         plot(x_HV_list,del_HV_list,'r', 'DisplayName','Steering Angle (APF-MPC)')
-%         plot(x_HV_list,del_ref_HV_list,'r', 'DisplayName','Reference Steering Angle','LineStyle', '--')
+        plot(x_HV_list,del_ref_HV_list, 'Color','#77AC30', 'DisplayName','Reference Steering Angle','LineStyle', '--', 'LineWidth', 1.5)
         xlabel('Distance in the Longitudinal Direction')
         ylabel('Steering Angle')
         title('(6) Steering Angle', 'FontWeight','bold')
@@ -568,10 +568,10 @@ while x_h(2,1)<=road_len
         xlim([0 road_len]);
         xticks(0:100:road_len)
         
-        sgtitle(name);
-%         page_name_png=['Fig' num2str(count) '.png'];
+%         sgtitle(name);
+        page_name_png=['Fig' num2str(count) '.png'];
 %         % Requires R2020a or later
-%         exportgraphics(f,page_name_png,'Resolution',300)
+        exportgraphics(f,page_name_png,'Resolution',300)
     end
     %% Plot 1  
 %     % First plot the given data. This data includes the road and lane markers,
@@ -1713,15 +1713,15 @@ function APFMPCplotdata2(const_r)
 % green
 
     for i=1:1:length(loc_lane_bound)
-        yline(loc_lane_bound(i), 'Color','c');
+        yline(loc_lane_bound(i), 'Color','k', 'DisplayName','Lane Boundaries');
         hold on;
     end
     for i=1:1:length(loc_road_bound)
-        yline(loc_road_bound(i), 'Color','b');
+        yline(loc_road_bound(i), 'Color','k','HandleVisibility','off');
         hold on;
     end
     for i=1:1:n_lanes
-        yline(loc_lane_cent(i), 'Color','g','LineStyle','--');
+        yline(loc_lane_cent(i), 'Color','k','LineStyle','--', 'DisplayName','Lane Centres');
         hold on;
     end  
 % Add the contour of the gaussian function to the plot
